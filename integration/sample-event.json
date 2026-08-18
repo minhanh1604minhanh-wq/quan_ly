@@ -1,0 +1,21 @@
+{
+  "sessionId": "demo-session-001",
+  "visitorId": "demo-visitor-001",
+  "participant": {
+    "name": "Nguyễn Văn A",
+    "className": "8A1",
+    "schoolName": "THCS Ví Dụ"
+  },
+  "character": {
+    "slug": "trung-trac",
+    "nameVi": "Trưng Trắc",
+    "nameEn": "Trung Trac"
+  },
+  "language": "vi",
+  "eventType": "page_view",
+  "feature": "Trang chính",
+  "content": "Mở website nhân vật",
+  "durationSeconds": 0,
+  "metadata": {},
+  "occurredAt": "2026-08-18T16:10:00+07:00"
+}

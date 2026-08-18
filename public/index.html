@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#eee2c9" />
+  <title>Quản lý Bảo tàng Lịch sử Tương tác</title>
+  <link rel="stylesheet" href="/styles.css?v=1.0.1" />
+</head>
+<body>
+  <div id="loginView" class="login-shell">
+    <section class="login-card paper-card">
+      <div class="seal">QL</div>
+      <p class="eyebrow">KHU VỰC GIÁO VIÊN</p>
+      <h1>Quản lý Bảo tàng Lịch sử Tương tác</h1>
+      <p class="muted">Thống kê hoạt động của các website nhân vật và phân tích bằng AI.</p>
+      <form id="loginForm">
+        <label for="password">Mật khẩu quản trị</label>
+        <input id="password" type="password" autocomplete="current-password" required />
+        <button class="primary-btn" type="submit">Đăng nhập</button>
+        <p id="loginError" class="error-text" aria-live="polite"></p>
+      </form>
+    </section>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">史</div>
+        <div>
+          <strong>Bảo tàng lịch sử</strong>
+          <span>Hệ thống quản lý</span>
+        </div>
+      </div>
+      <nav id="nav">
+        <button class="nav-btn active" data-section="overview">Tổng quan</button>
+        <button class="nav-btn" data-section="characters">Nhân vật</button>
+        <button class="nav-btn" data-section="participants">Người tham gia</button>
+        <button class="nav-btn" data-section="activity">Hoạt động</button>
+        <button class="nav-btn" data-section="ai">AI phân tích</button>
+      </nav>
+      <button id="logoutBtn" class="ghost-btn sidebar-logout">Đăng xuất</button>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">BẢNG ĐIỀU KHIỂN GIÁO VIÊN</p>
+          <h1 id="pageTitle">Tổng quan</h1>
+        </div>
+        <div class="status-pill" id="statusPill">Đang kết nối dữ liệu</div>
+      </header>
+
+      <section class="filters paper-card compact">
+        <label>Từ ngày<input id="filterFrom" type="date" /></label>
+        <label>Đến ngày<input id="filterTo" type="date" /></label>
+        <label>Nhân vật<select id="filterCharacter"><option value="">Tất cả</option></select></label>
+        <label>Lớp<input id="filterClass" type="text" placeholder="Ví dụ: 8A1" /></label>
+        <label>Trường<input id="filterSchool" type="text" placeholder="Tên trường" /></label>
+        <div class="filter-actions">
+          <button id="applyFilters" class="primary-btn">Áp dụng</button>
+          <button id="clearFilters" class="ghost-btn">Xóa lọc</button>
+        </div>
+      </section>
+
+      <section id="section-overview" class="page-section">
+        <div class="stats-grid">
+          <article class="stat-card paper-card"><span>Nhân vật</span><strong id="statCharacters">0</strong><small>đang hoạt động</small></article>
+          <article class="stat-card paper-card"><span>Người tham gia</span><strong id="statParticipants">0</strong><small>visitor ID khác nhau</small></article>
+          <article class="stat-card paper-card"><span>Phiên học</span><strong id="statSessions">0</strong><small>trong phạm vi lọc</small></article>
+          <article class="stat-card paper-card"><span>Tương tác</span><strong id="statInteractions">0</strong><small>tổng sự kiện</small></article>
+          <article class="stat-card paper-card"><span>Yêu thích</span><strong id="statFavorites">0</strong><small>favorite_add</small></article>
+          <article class="stat-card paper-card"><span>Thời gian</span><strong id="statDuration">0 phút</strong><small>tổng thời lượng phiên</small></article>
+        </div>
+
+        <div class="two-col">
+          <article class="paper-card panel">
+            <div class="panel-head"><div><p class="eyebrow">XẾP HẠNG</p><h2>Nhân vật được quan tâm</h2></div><span class="note">theo tương tác</span></div>
+            <div id="characterRanking" class="ranking-list empty">Chưa có dữ liệu.</div>
+          </article>
+          <article class="paper-card panel">
+            <div class="panel-head"><div><p class="eyebrow">CHỨC NĂNG</p><h2>Mức độ sử dụng</h2></div></div>
+            <div id="featureBars" class="bar-list empty">Chưa có dữ liệu.</div>
+          </article>
+        </div>
+
+        <article class="paper-card panel">
+          <div class="panel-head"><div><p class="eyebrow">THEO THỜI GIAN</p><h2>Lượt tương tác theo ngày</h2></div></div>
+          <div id="dailyChart" class="daily-chart empty">Chưa có dữ liệu.</div>
+        </article>
+      </section>
+
+      <section id="section-characters" class="page-section hidden">
+        <div class="two-col align-start">
+          <article class="paper-card panel">
+            <div class="panel-head"><div><p class="eyebrow">DANH SÁCH</p><h2>Nhân vật</h2></div></div>
+            <div id="characterTableWrap" class="table-wrap"></div>
+          </article>
+          <article class="paper-card panel sticky-card">
+            <p class="eyebrow">THÊM NHÂN VẬT</p>
+            <h2>Đăng ký nhân vật mới</h2>
+            <form id="characterForm" class="stack-form">
+              <label>Slug<input id="characterSlug" required placeholder="ngo-quyen" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" /></label>
+              <label>Tên tiếng Việt<input id="characterNameVi" required placeholder="Ngô Quyền" /></label>
+              <label>Tên tiếng Anh<input id="characterNameEn" placeholder="Ngo Quyen" /></label>
+              <button class="primary-btn" type="submit">Thêm nhân vật</button>
+              <p id="characterFormMessage" class="form-message"></p>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section id="section-participants" class="page-section hidden">
+        <article class="paper-card panel">
+          <div class="panel-head"><div><p class="eyebrow">NGƯỜI THAM GIA</p><h2>Ai tương tác nhiều nhất?</h2></div><span class="note">Tên bắt buộc · Lớp/Trường tùy chọn</span></div>
+          <div id="participantTableWrap" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section id="section-activity" class="page-section hidden">
+        <article class="paper-card panel">
+          <div class="panel-head"><div><p class="eyebrow">NHẬT KÝ</p><h2>Hoạt động gần đây</h2></div></div>
+          <div id="activityTableWrap" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section id="section-ai" class="page-section hidden">
+        <div class="ai-layout">
+          <article class="paper-card panel ai-card">
+            <p class="eyebrow">TRỢ LÝ PHÂN TÍCH</p>
+            <h2>Hỏi AI về dữ liệu hệ thống</h2>
+            <p class="muted">AI chỉ trả lời câu hỏi về hoạt động, mức độ quan tâm, sử dụng chức năng và đề xuất cải tiến dựa trên dữ liệu. Câu hỏi ngoài lề sẽ bị từ chối.</p>
+            <div class="suggestions">
+              <button data-question="Nhân vật nào được quan tâm nhất và vì sao?">Nhân vật được quan tâm nhất?</button>
+              <button data-question="Có bao nhiêu người tham gia và ai tương tác nhiều nhất?">Ai tương tác nhiều nhất?</button>
+              <button data-question="Chức năng nào đang được sử dụng nhiều nhất và ít nhất?">Chức năng phổ biến?</button>
+              <button data-question="Dựa trên dữ liệu hiện có, đề xuất các phương án cải tiến hệ thống.">Đề xuất cải tiến</button>
+            </div>
+            <form id="aiForm" class="ai-form">
+              <textarea id="aiQuestion" rows="4" required placeholder="Ví dụ: So sánh mức độ quan tâm giữa Trưng Trắc và Ngô Quyền..."></textarea>
+              <button class="primary-btn" type="submit">Phân tích</button>
+            </form>
+          </article>
+          <article class="paper-card panel answer-card">
+            <p class="eyebrow">KẾT QUẢ</p>
+            <div id="aiAnswer" class="ai-answer muted">Chưa có câu hỏi.</div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js?v=1.0.1" defer></script>
+</body>
+</html>

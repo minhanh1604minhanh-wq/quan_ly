@@ -1,0 +1,23 @@
+History Analytics Manager v1.0.0
+
+server.js
+package.json
+vercel.json
+.env.example
+.gitignore
+README.md
+VALIDATION_REPORT.txt
+validate-project.js
+public/index.html
+public/styles.css
+public/app.js
+supabase/schema.sql
+supabase/seed.sql
+integration/INTEGRATION_GUIDE.md
+integration/sample-event.json
+
+
+v1.0.1 FIXES
+- Removed Vercel catch-all rewrite that intercepted public/styles.css and public/app.js.
+- Static assets are now served directly from public/ by Vercel CDN.
+- Added CSS/JS cache-busting query version 1.0.1.
