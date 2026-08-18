@@ -1,0 +1,27 @@
+HISTORY ANALYTICS MANAGER v1.1.0 — VALIDATION REPORT
+Date: 2026-08-18
+
+PASS node --check server.js
+PASS node --check public/app.js
+PASS npm run check
+PASS static JS element IDs all exist in HTML
+PASS login uses username + password
+PASS password hashing uses Node.js crypto.scryptSync
+PASS signed HttpOnly admin session with session_version invalidation
+PASS master-only API middleware exists
+PASS create manager endpoint exists
+PASS reset manager password endpoint exists
+PASS revoke/restore manager endpoint exists
+PASS self password change endpoint exists
+PASS manager list UI restricted to master role
+PASS Supabase admins table + admin_audit_logs table included
+PASS RLS enabled for admin tables; anon/authenticated access revoked
+PASS no plaintext owner password in project files
+PASS no Google Sheets env/runtime references
+PASS existing analytics/event/AI/character functions preserved
+PASS Vercel static CSS/JS fix from v1.0.1 preserved
+
+Security behavior:
+- Password reset/change increments session_version and invalidates previous sessions.
+- Revoking a manager also increments session_version and blocks future protected API requests.
+- The master bootstrap password is read from environment only and stored as a scrypt hash.

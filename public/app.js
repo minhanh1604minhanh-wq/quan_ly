@@ -1,12 +1,14 @@
 const $ = (id) => document.getElementById(id);
-const state = { authenticated: false, snapshot: null, characters: [], currentSection: 'overview' };
+const state = { authenticated: false, user: null, snapshot: null, characters: [], admins: [], currentSection: 'overview' };
 
 const sectionTitles = {
   overview: 'Tổng quan',
   characters: 'Nhân vật',
   participants: 'Người tham gia',
   activity: 'Hoạt động',
-  ai: 'AI phân tích'
+  ai: 'AI phân tích',
+  admins: 'Quản lý tài khoản',
+  account: 'Tài khoản của tôi'
 };
 
 function fmtNumber(n) { return new Intl.NumberFormat('vi-VN').format(Number(n || 0)); }
@@ -42,13 +44,24 @@ async function api(url, options = {}) {
 
 function showLogin() {
   state.authenticated = false;
+  state.user = null;
   $('loginView').classList.remove('hidden');
   $('appView').classList.add('hidden');
 }
-function showApp() {
+function showApp(user = state.user) {
   state.authenticated = true;
+  if (user) state.user = user;
   $('loginView').classList.add('hidden');
   $('appView').classList.remove('hidden');
+  applyRoleUI();
+}
+
+function isMaster() { return state.user?.role === 'master'; }
+function applyRoleUI() {
+  $('currentAdminName').textContent = state.user?.username || '—';
+  $('currentAdminRole').textContent = isMaster() ? 'Quản lý chính' : 'Quản lý';
+  document.querySelectorAll('.master-only').forEach(el => el.classList.toggle('hidden', !isMaster()));
+  if (!isMaster() && state.currentSection === 'admins') state.currentSection = 'overview';
 }
 
 function currentFilters() {
@@ -187,19 +200,72 @@ function renderCharacterAdmin() {
   }));
 }
 
+async function loadAdmins() {
+  if (!isMaster()) return;
+  const result = await api('/api/admins');
+  state.admins = result.data || [];
+  renderAdmins();
+}
+
+function renderAdmins() {
+  const el = $('adminTableWrap');
+  if (!el) return;
+  if (!state.admins.length) { el.innerHTML = '<p class="empty">Chưa có tài khoản quản lý.</p>'; return; }
+  el.innerHTML = `<table class="data-table"><thead><tr><th>Tên</th><th>Cấp quyền</th><th>Trạng thái</th><th>Đăng nhập gần nhất</th><th>Thao tác</th></tr></thead><tbody>
+    ${state.admins.map(a => {
+      const master = a.role === 'master';
+      const actions = master
+        ? '<span class="note">Tài khoản gốc</span>'
+        : `<div class="admin-actions"><button class="toggle-btn" data-reset-admin="${escapeHtml(a.id)}" data-name="${escapeHtml(a.username)}">Đặt lại mật khẩu</button><button class="toggle-btn ${a.active ? 'danger-btn' : ''}" data-status-admin="${escapeHtml(a.id)}" data-active="${a.active ? '1':'0'}">${a.active ? 'Thu hồi quyền' : 'Khôi phục quyền'}</button></div>`;
+      return `<tr><td><strong>${escapeHtml(a.username)}</strong></td><td><span class="badge ${master ? 'master-badge' : ''}">${master ? 'Quản lý chính' : 'Quản lý'}</span></td><td><span class="badge ${a.active ? '' : 'off'}">${a.active ? 'Đang hoạt động' : 'Đã thu hồi'}</span></td><td>${escapeHtml(fmtDate(a.last_login) || 'Chưa đăng nhập')}</td><td>${actions}</td></tr>`;
+    }).join('')}
+    </tbody></table>`;
+
+  el.querySelectorAll('[data-status-admin]').forEach(btn => btn.addEventListener('click', async () => {
+    const nextActive = btn.dataset.active !== '1';
+    const message = nextActive ? 'Khôi phục quyền cho tài khoản này?' : 'Thu hồi quyền? Tài khoản này sẽ không thể tiếp tục truy cập khu vực quản lý.';
+    if (!confirm(message)) return;
+    btn.disabled = true;
+    try {
+      await api(`/api/admins/${encodeURIComponent(btn.dataset.statusAdmin)}/status`, { method:'PATCH', body: JSON.stringify({ active: nextActive }) });
+      await loadAdmins();
+    } catch (error) { alert(error.message); }
+    finally { btn.disabled = false; }
+  }));
+
+  el.querySelectorAll('[data-reset-admin]').forEach(btn => btn.addEventListener('click', async () => {
+    const password = prompt(`Nhập mật khẩu mới cho ${btn.dataset.name} (ít nhất 8 ký tự):`);
+    if (password === null) return;
+    if (password.length < 8) { alert('Mật khẩu phải có ít nhất 8 ký tự.'); return; }
+    const confirmPassword = prompt('Nhập lại mật khẩu mới:');
+    if (confirmPassword !== password) { alert('Hai mật khẩu không khớp.'); return; }
+    btn.disabled = true;
+    try {
+      await api(`/api/admins/${encodeURIComponent(btn.dataset.resetAdmin)}/password`, { method:'PATCH', body: JSON.stringify({ newPassword: password }) });
+      alert('Đã đặt lại mật khẩu. Các phiên đăng nhập cũ của tài khoản đó đã bị vô hiệu hóa.');
+    } catch (error) { alert(error.message); }
+    finally { btn.disabled = false; }
+  }));
+}
+
 function switchSection(name) {
+  if (name === 'admins' && !isMaster()) name = 'overview';
+  const section = $(`section-${name}`);
+  if (!section) name = 'overview';
   state.currentSection = name;
   document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
   $(`section-${name}`).classList.remove('hidden');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.section === name));
   $('pageTitle').textContent = sectionTitles[name] || 'Quản lý';
+  $('filtersPanel').classList.toggle('hidden', name === 'admins' || name === 'account');
+  if (name === 'admins' && isMaster()) loadAdmins().catch(error => alert(error.message));
 }
 
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault(); $('loginError').textContent = '';
   try {
-    await api('/api/auth/login', { method:'POST', body: JSON.stringify({ password: $('password').value }) });
-    $('password').value = ''; showApp(); await initialize();
+    const result = await api('/api/auth/login', { method:'POST', body: JSON.stringify({ username: $('username').value.trim(), password: $('password').value }) });
+    $('password').value = ''; state.user = result.user; showApp(result.user); await initialize();
   } catch (error) { $('loginError').textContent = error.message; }
 });
 $('logoutBtn').addEventListener('click', async () => { try { await api('/api/auth/logout', { method:'POST' }); } catch {} showLogin(); });
@@ -216,6 +282,34 @@ $('characterForm').addEventListener('submit', async e => {
   } catch (error) { msg.textContent = error.message; }
 });
 
+$('adminForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('adminFormMessage');
+  const password = $('adminPassword').value;
+  const confirmPassword = $('adminPasswordConfirm').value;
+  if (password !== confirmPassword) { msg.textContent = 'Hai mật khẩu không khớp.'; return; }
+  msg.textContent = 'Đang tạo tài khoản…';
+  try {
+    await api('/api/admins', { method:'POST', body: JSON.stringify({ username: $('adminUsername').value.trim(), password }) });
+    e.target.reset(); msg.textContent = 'Đã tạo tài khoản quản lý.'; await loadAdmins();
+  } catch (error) { msg.textContent = error.message; }
+});
+
+$('changePasswordForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('changePasswordMessage');
+  const currentPassword = $('currentPassword').value;
+  const newPassword = $('newPassword').value;
+  if (newPassword !== $('newPasswordConfirm').value) { msg.textContent = 'Hai mật khẩu mới không khớp.'; return; }
+  msg.textContent = 'Đang đổi mật khẩu…';
+  try {
+    await api('/api/auth/change-password', { method:'POST', body: JSON.stringify({ currentPassword, newPassword }) });
+    e.target.reset();
+    alert('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');
+    showLogin();
+  } catch (error) { msg.textContent = error.message; }
+});
+
 document.querySelectorAll('[data-question]').forEach(btn => btn.addEventListener('click', () => { $('aiQuestion').value = btn.dataset.question; $('aiQuestion').focus(); }));
 $('aiForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -228,13 +322,13 @@ $('aiForm').addEventListener('submit', async e => {
 });
 
 async function initialize() {
-  try { await loadCharacters(); await loadSnapshot(); switchSection(state.currentSection); }
+  try { await loadCharacters(); await loadSnapshot(); if (isMaster()) await loadAdmins(); applyRoleUI(); switchSection(state.currentSection); }
   catch (error) { setStatus(error.message, false, true); }
 }
 
 (async function boot() {
   try {
     const me = await api('/api/auth/me');
-    if (me.ok) { showApp(); await initialize(); } else showLogin();
+    if (me.ok) { state.user = me.user; showApp(me.user); await initialize(); } else showLogin();
   } catch { showLogin(); }
 })();

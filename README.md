@@ -1,6 +1,6 @@
-# HISTORY ANALYTICS MANAGER v1.0.1
+# HISTORY ANALYTICS MANAGER v1.1.0
 
-> Bản v1.0.1 sửa lỗi giao diện bị hiển thị như HTML thô trên Vercel. Nguyên nhân của v1.0.0 là `vercel.json` rewrite toàn bộ request (kể cả `/styles.css` và `/app.js`) vào `server.js`. Trên Vercel, static assets trong `public/` phải được CDN phục vụ trực tiếp. Bản này bỏ catch-all rewrite và thêm cache-busting cho CSS/JS.
+> Bản v1.1.0 giữ bản sửa static CSS/JS của v1.0.1 và bổ sung hệ thống đăng nhập nhiều cấp: Quản lý chính và Quản lý.
 
 Website quản lý riêng cho giáo viên, thay cho Google Sheets.
 
@@ -14,6 +14,25 @@ Website quản lý riêng cho giáo viên, thay cho Google Sheets.
 - Xem người tham gia và hoạt động gần đây.
 - AI giáo viên chỉ trả lời câu hỏi về dữ liệu sử dụng hệ thống; câu hỏi ngoài phạm vi bị từ chối.
 - Không dùng Google Sheets.
+- Đăng nhập bằng **tên quản lý + mật khẩu**.
+- **Quản lý chính** có thể tạo quản lý mới, đặt lại mật khẩu, thu hồi/khôi phục quyền.
+- **Quản lý thường** được dùng dashboard, nhân vật, người tham gia, hoạt động và AI nhưng không được quản lý tài khoản khác.
+- Mọi tài khoản có thể tự đổi mật khẩu; đổi/reset/thu hồi quyền sẽ vô hiệu hóa phiên đăng nhập cũ.
+
+
+## Tài khoản Quản lý chính ban đầu
+
+Không hard-code mật khẩu vào GitHub/ZIP. Trong Vercel → Project Settings → Environment Variables, đặt:
+
+```env
+SUPERADMIN_USERNAME="Nguyễn Minh Anh"
+SUPERADMIN_PASSWORD=<mật khẩu do chủ hệ thống cung cấp>
+ADMIN_SESSION_SECRET=<chuỗi ngẫu nhiên dài>
+```
+
+Với yêu cầu hiện tại của chủ hệ thống, đặt `SUPERADMIN_PASSWORD` trên Vercel thành mật khẩu đã cung cấp trong cuộc trao đổi. Sau lần đăng nhập đầu, hệ thống tự tạo tài khoản Quản lý chính trong bảng `admins` với mật khẩu đã băm bằng scrypt. **Không đưa mật khẩu thật vào `.env.example`, source code hoặc GitHub.**
+
+Nếu nâng cấp từ v1.0.1, hãy chạy lại toàn bộ `supabase/schema.sql` trong Supabase SQL Editor trước khi deploy v1.1.0; file dùng `create table if not exists` nên không xóa dữ liệu thống kê cũ.
 
 ## 1. Tạo Supabase
 

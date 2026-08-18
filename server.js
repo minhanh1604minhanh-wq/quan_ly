@@ -62,9 +62,66 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(A, B);
 }
 
-function signAdminToken() {
+function normalizeUsername(value) {
+  return cleanText(value, 120).normalize('NFKC').replace(/\s+/g, ' ').toLocaleLowerCase('vi-VN');
+}
+
+function validPassword(value) {
+  return typeof value === 'string' && value.length >= 8 && value.length <= 200;
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync(password, salt, 64);
+  return `scrypt$${salt.toString('base64url')}$${hash.toString('base64url')}`;
+}
+
+function verifyPassword(password, stored) {
+  try {
+    const [scheme, saltB64, hashB64] = String(stored || '').split('$');
+    if (scheme !== 'scrypt' || !saltB64 || !hashB64) return false;
+    const expected = Buffer.from(hashB64, 'base64url');
+    const actual = crypto.scryptSync(password, Buffer.from(saltB64, 'base64url'), expected.length);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
+}
+
+async function ensureBootstrapAdmin() {
+  const username = cleanText(process.env.SUPERADMIN_USERNAME || 'Nguyễn Minh Anh', 120);
+  const password = process.env.SUPERADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '';
+  if (!username || !password) return;
+  if (!validPassword(password)) throw new Error('SUPERADMIN_PASSWORD phải có ít nhất 8 ký tự.');
+
+  const { data: masterRows, error: masterError } = await db()
+    .from('admins')
+    .select('id')
+    .eq('role', 'master')
+    .limit(1);
+  if (masterError) throw masterError;
+  if (Array.isArray(masterRows) && masterRows.length) return;
+
+  const usernameKey = normalizeUsername(username);
+  const { error } = await db().from('admins').insert({
+    username,
+    username_key: usernameKey,
+    password_hash: hashPassword(password),
+    role: 'master',
+    active: true,
+    session_version: 1
+  });
+  if (error) throw error;
+}
+
+function signAdminToken(admin) {
   const secret = env('ADMIN_SESSION_SECRET');
-  const payload = Buffer.from(JSON.stringify({ exp: Date.now() + 12 * 60 * 60 * 1000 })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    sub: admin.id,
+    role: admin.role,
+    sv: Number(admin.session_version || 1),
+    exp: Date.now() + 12 * 60 * 60 * 1000
+  })).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
@@ -72,21 +129,59 @@ function signAdminToken() {
 function verifyAdminToken(token) {
   try {
     const [payload, sig] = String(token || '').split('.');
-    if (!payload || !sig) return false;
+    if (!payload || !sig) return null;
     const expected = crypto.createHmac('sha256', env('ADMIN_SESSION_SECRET')).update(payload).digest('base64url');
-    if (!safeEqual(sig, expected)) return false;
+    if (!safeEqual(sig, expected)) return null;
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    return Number(data.exp) > Date.now();
+    if (!data.sub || Number(data.exp) <= Date.now()) return null;
+    return data;
   } catch {
-    return false;
+    return null;
   }
 }
 
-function requireAdmin(req, res, next) {
-  if (!verifyAdminToken(parseCookies(req)[SESSION_COOKIE])) {
-    return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' });
+async function currentAdmin(req) {
+  const token = verifyAdminToken(parseCookies(req)[SESSION_COOKIE]);
+  if (!token) return null;
+  const { data, error } = await db()
+    .from('admins')
+    .select('id,username,role,active,session_version,last_login,created_at')
+    .eq('id', token.sub)
+    .maybeSingle();
+  if (error || !data || !data.active || Number(data.session_version || 1) !== Number(token.sv || 1)) return null;
+  return data;
+}
+
+async function requireAdmin(req, res, next) {
+  try {
+    const admin = await currentAdmin(req);
+    if (!admin) return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' });
+    req.admin = admin;
+    next();
+  } catch (error) {
+    console.error('admin auth error', error);
+    res.status(500).json({ ok: false, error: 'Không thể xác thực tài khoản quản lý.' });
+  }
+}
+
+function requireMaster(req, res, next) {
+  if (req.admin?.role !== 'master') {
+    return res.status(403).json({ ok: false, error: 'Chỉ Quản lý chính được thực hiện thao tác này.' });
   }
   next();
+}
+
+async function auditAdmin(actorId, targetId, action, metadata = {}) {
+  try {
+    await db().from('admin_audit_logs').insert({
+      actor_id: actorId || null,
+      target_id: targetId || null,
+      action,
+      metadata: metadata && typeof metadata === 'object' ? metadata : {}
+    });
+  } catch (error) {
+    console.warn('admin audit log error', error?.message || error);
+  }
 }
 
 function requireIngest(req, res, next) {
@@ -129,35 +224,175 @@ app.get('/health', async (_req, res) => {
   res.json({
     ok: true,
     service: 'history-analytics-manager',
+    version: '1.1.0',
     databaseReady,
     aiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    roleBasedAdmin: true,
     googleSheets: false
   });
 });
 
-app.post('/api/auth/login', (req, res) => {
-  const password = cleanText(req.body?.password, 500);
-  if (!safeEqual(password, env('ADMIN_PASSWORD'))) {
-    return res.status(401).json({ ok: false, error: 'Mật khẩu không đúng.' });
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    await ensureBootstrapAdmin();
+    const username = cleanText(req.body?.username, 120);
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (!username || !password) {
+      return res.status(400).json({ ok: false, error: 'Cần nhập tên quản lý và mật khẩu.' });
+    }
+
+    const { data: admin, error } = await db()
+      .from('admins')
+      .select('id,username,username_key,password_hash,role,active,session_version,last_login,created_at')
+      .eq('username_key', normalizeUsername(username))
+      .maybeSingle();
+    if (error) throw error;
+    if (!admin || !admin.active || !verifyPassword(password, admin.password_hash)) {
+      return res.status(401).json({ ok: false, error: 'Tên quản lý hoặc mật khẩu không đúng.' });
+    }
+
+    const now = new Date().toISOString();
+    await db().from('admins').update({ last_login: now, updated_at: now }).eq('id', admin.id);
+    const secure = process.env.NODE_ENV === 'production';
+    res.cookie(SESSION_COOKIE, signAdminToken(admin), {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure,
+      maxAge: 12 * 60 * 60 * 1000,
+      path: '/'
+    });
+    await auditAdmin(admin.id, admin.id, 'login');
+    res.json({ ok: true, user: { id: admin.id, username: admin.username, role: admin.role } });
+  } catch (error) {
+    console.error('login error', error);
+    res.status(500).json({ ok: false, error: 'Không thể đăng nhập. Kiểm tra cấu hình database/quản lý chính.' });
   }
-  const secure = process.env.NODE_ENV === 'production';
-  res.cookie(SESSION_COOKIE, signAdminToken(), {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure,
-    maxAge: 12 * 60 * 60 * 1000,
-    path: '/'
-  });
-  res.json({ ok: true });
 });
 
-app.post('/api/auth/logout', (_req, res) => {
+app.post('/api/auth/logout', requireAdmin, async (req, res) => {
+  await auditAdmin(req.admin.id, req.admin.id, 'logout');
   res.clearCookie(SESSION_COOKIE, { path: '/' });
   res.json({ ok: true });
 });
 
-app.get('/api/auth/me', (req, res) => {
-  res.json({ ok: verifyAdminToken(parseCookies(req)[SESSION_COOKIE]) });
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const admin = await currentAdmin(req);
+    if (!admin) return res.json({ ok: false });
+    res.json({ ok: true, user: { id: admin.id, username: admin.username, role: admin.role } });
+  } catch {
+    res.json({ ok: false });
+  }
+});
+
+app.post('/api/auth/change-password', requireAdmin, async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+    const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+    if (!validPassword(newPassword)) {
+      return res.status(400).json({ ok: false, error: 'Mật khẩu mới phải có từ 8 đến 200 ký tự.' });
+    }
+    const { data: row, error: readError } = await db().from('admins').select('password_hash,session_version').eq('id', req.admin.id).single();
+    if (readError) throw readError;
+    if (!verifyPassword(currentPassword, row.password_hash)) {
+      return res.status(401).json({ ok: false, error: 'Mật khẩu hiện tại không đúng.' });
+    }
+    const nextVersion = Number(row.session_version || 1) + 1;
+    const { error } = await db().from('admins').update({
+      password_hash: hashPassword(newPassword),
+      session_version: nextVersion,
+      updated_at: new Date().toISOString()
+    }).eq('id', req.admin.id);
+    if (error) throw error;
+    await auditAdmin(req.admin.id, req.admin.id, 'change_own_password');
+    res.clearCookie(SESSION_COOKIE, { path: '/' });
+    res.json({ ok: true, relogin: true });
+  } catch (error) {
+    console.error('change password error', error);
+    res.status(500).json({ ok: false, error: 'Không thể đổi mật khẩu.' });
+  }
+});
+
+app.get('/api/admins', requireAdmin, requireMaster, async (_req, res) => {
+  try {
+    const { data, error } = await db().from('admins')
+      .select('id,username,role,active,last_login,created_at,updated_at')
+      .order('role', { ascending: true })
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    res.json({ ok: true, data: data || [] });
+  } catch (error) {
+    console.error('list admins error', error);
+    res.status(500).json({ ok: false, error: 'Không thể tải danh sách quản lý.' });
+  }
+});
+
+app.post('/api/admins', requireAdmin, requireMaster, async (req, res) => {
+  try {
+    const username = cleanText(req.body?.username, 120);
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (username.length < 3) return res.status(400).json({ ok: false, error: 'Tên quản lý phải có ít nhất 3 ký tự.' });
+    if (!validPassword(password)) return res.status(400).json({ ok: false, error: 'Mật khẩu phải có từ 8 đến 200 ký tự.' });
+
+    const payload = {
+      username,
+      username_key: normalizeUsername(username),
+      password_hash: hashPassword(password),
+      role: 'manager',
+      active: true,
+      session_version: 1
+    };
+    const { data, error } = await db().from('admins').insert(payload).select('id,username,role,active,created_at').single();
+    if (error) throw error;
+    await auditAdmin(req.admin.id, data.id, 'create_manager', { username: data.username });
+    res.json({ ok: true, data });
+  } catch (error) {
+    const duplicate = String(error?.message || '').toLowerCase().includes('duplicate') || String(error?.code || '') === '23505';
+    res.status(duplicate ? 409 : 500).json({ ok: false, error: duplicate ? 'Tên quản lý đã tồn tại.' : 'Không thể tạo tài khoản quản lý.' });
+  }
+});
+
+app.patch('/api/admins/:id/status', requireAdmin, requireMaster, async (req, res) => {
+  try {
+    if (req.params.id === req.admin.id) return res.status(400).json({ ok: false, error: 'Không thể tự thu hồi quyền của Quản lý chính.' });
+    const active = Boolean(req.body?.active);
+    const { data: target, error: readError } = await db().from('admins').select('id,username,role,session_version').eq('id', req.params.id).single();
+    if (readError) throw readError;
+    if (target.role === 'master') return res.status(403).json({ ok: false, error: 'Không thể thu hồi quyền Quản lý chính từ chức năng này.' });
+    const { data, error } = await db().from('admins').update({
+      active,
+      session_version: Number(target.session_version || 1) + 1,
+      updated_at: new Date().toISOString()
+    }).eq('id', target.id).select('id,username,role,active').single();
+    if (error) throw error;
+    await auditAdmin(req.admin.id, target.id, active ? 'restore_manager' : 'revoke_manager', { username: target.username });
+    res.json({ ok: true, data });
+  } catch (error) {
+    console.error('admin status error', error);
+    res.status(500).json({ ok: false, error: 'Không thể cập nhật quyền quản lý.' });
+  }
+});
+
+app.patch('/api/admins/:id/password', requireAdmin, requireMaster, async (req, res) => {
+  try {
+    const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+    if (!validPassword(newPassword)) return res.status(400).json({ ok: false, error: 'Mật khẩu mới phải có từ 8 đến 200 ký tự.' });
+    const { data: target, error: readError } = await db().from('admins').select('id,username,role,session_version').eq('id', req.params.id).single();
+    if (readError) throw readError;
+    if (target.role === 'master' && target.id !== req.admin.id) return res.status(403).json({ ok: false, error: 'Không thể đặt lại mật khẩu của Quản lý chính khác.' });
+    const { error } = await db().from('admins').update({
+      password_hash: hashPassword(newPassword),
+      session_version: Number(target.session_version || 1) + 1,
+      updated_at: new Date().toISOString()
+    }).eq('id', target.id);
+    if (error) throw error;
+    await auditAdmin(req.admin.id, target.id, 'reset_manager_password', { username: target.username });
+    if (target.id === req.admin.id) res.clearCookie(SESSION_COOKIE, { path: '/' });
+    res.json({ ok: true, relogin: target.id === req.admin.id });
+  } catch (error) {
+    console.error('reset password error', error);
+    res.status(500).json({ ok: false, error: 'Không thể đặt lại mật khẩu.' });
+  }
 });
 
 app.post('/api/events', requireIngest, async (req, res) => {

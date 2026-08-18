@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#eee2c9" />
   <title>Quản lý Bảo tàng Lịch sử Tương tác</title>
-  <link rel="stylesheet" href="/styles.css?v=1.0.1" />
+  <link rel="stylesheet" href="/styles.css?v=1.1.0" />
 </head>
 <body>
   <div id="loginView" class="login-shell">
@@ -15,7 +15,9 @@
       <h1>Quản lý Bảo tàng Lịch sử Tương tác</h1>
       <p class="muted">Thống kê hoạt động của các website nhân vật và phân tích bằng AI.</p>
       <form id="loginForm">
-        <label for="password">Mật khẩu quản trị</label>
+        <label for="username">Tên quản lý</label>
+        <input id="username" type="text" autocomplete="username" required placeholder="Tên được Quản lý chính cấp" />
+        <label for="password">Mật khẩu</label>
         <input id="password" type="password" autocomplete="current-password" required />
         <button class="primary-btn" type="submit">Đăng nhập</button>
         <p id="loginError" class="error-text" aria-live="polite"></p>
@@ -32,12 +34,19 @@
           <span>Hệ thống quản lý</span>
         </div>
       </div>
+      <div class="account-chip">
+        <span>Đang đăng nhập</span>
+        <strong id="currentAdminName">—</strong>
+        <small id="currentAdminRole">—</small>
+      </div>
       <nav id="nav">
         <button class="nav-btn active" data-section="overview">Tổng quan</button>
         <button class="nav-btn" data-section="characters">Nhân vật</button>
         <button class="nav-btn" data-section="participants">Người tham gia</button>
         <button class="nav-btn" data-section="activity">Hoạt động</button>
         <button class="nav-btn" data-section="ai">AI phân tích</button>
+        <button class="nav-btn master-only hidden" data-section="admins">Quản lý tài khoản</button>
+        <button class="nav-btn" data-section="account">Tài khoản của tôi</button>
       </nav>
       <button id="logoutBtn" class="ghost-btn sidebar-logout">Đăng xuất</button>
     </aside>
@@ -51,7 +60,7 @@
         <div class="status-pill" id="statusPill">Đang kết nối dữ liệu</div>
       </header>
 
-      <section class="filters paper-card compact">
+      <section id="filtersPanel" class="filters paper-card compact">
         <label>Từ ngày<input id="filterFrom" type="date" /></label>
         <label>Đến ngày<input id="filterTo" type="date" /></label>
         <label>Nhân vật<select id="filterCharacter"><option value="">Tất cả</option></select></label>
@@ -147,9 +156,46 @@
           </article>
         </div>
       </section>
+
+      <section id="section-admins" class="page-section hidden">
+        <div class="two-col align-start">
+          <article class="paper-card panel">
+            <div class="panel-head"><div><p class="eyebrow">PHÂN QUYỀN</p><h2>Danh sách quản lý</h2></div><span class="note">Chỉ Quản lý chính</span></div>
+            <p class="muted">Thu hồi quyền sẽ đăng xuất tài khoản đó khỏi các phiên hiện tại. Dữ liệu thống kê không bị xóa.</p>
+            <div id="adminTableWrap" class="table-wrap"></div>
+          </article>
+          <article class="paper-card panel sticky-card">
+            <p class="eyebrow">THÊM QUẢN LÝ</p>
+            <h2>Tạo tài khoản mới</h2>
+            <p class="muted">Tạo tên và mật khẩu, sau đó cung cấp riêng cho người được cấp quyền.</p>
+            <form id="adminForm" class="stack-form">
+              <label>Tên quản lý<input id="adminUsername" required minlength="3" maxlength="120" placeholder="Ví dụ: Nguyễn Văn A" /></label>
+              <label>Mật khẩu tạm<input id="adminPassword" type="password" required minlength="8" maxlength="200" autocomplete="new-password" /></label>
+              <label>Nhập lại mật khẩu<input id="adminPasswordConfirm" type="password" required minlength="8" maxlength="200" autocomplete="new-password" /></label>
+              <button class="primary-btn" type="submit">Tạo quản lý</button>
+              <p id="adminFormMessage" class="form-message"></p>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section id="section-account" class="page-section hidden">
+        <article class="paper-card panel account-panel">
+          <p class="eyebrow">BẢO MẬT TÀI KHOẢN</p>
+          <h2>Đổi mật khẩu của tôi</h2>
+          <p class="muted">Sau khi đổi mật khẩu, hệ thống sẽ đăng xuất và yêu cầu đăng nhập lại.</p>
+          <form id="changePasswordForm" class="stack-form">
+            <label>Mật khẩu hiện tại<input id="currentPassword" type="password" required autocomplete="current-password" /></label>
+            <label>Mật khẩu mới<input id="newPassword" type="password" required minlength="8" maxlength="200" autocomplete="new-password" /></label>
+            <label>Nhập lại mật khẩu mới<input id="newPasswordConfirm" type="password" required minlength="8" maxlength="200" autocomplete="new-password" /></label>
+            <button class="primary-btn" type="submit">Đổi mật khẩu</button>
+            <p id="changePasswordMessage" class="form-message"></p>
+          </form>
+        </article>
+      </section>
     </main>
   </div>
 
-  <script src="/app.js?v=1.0.1" defer></script>
+  <script src="/app.js?v=1.1.0" defer></script>
 </body>
 </html>

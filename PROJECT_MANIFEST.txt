@@ -1,23 +1,36 @@
-History Analytics Manager v1.0.0
+History Analytics Manager v1.1.0 — Role-Based Admin
 
-server.js
-package.json
-vercel.json
-.env.example
-.gitignore
-README.md
-VALIDATION_REPORT.txt
-validate-project.js
-public/index.html
-public/styles.css
-public/app.js
-supabase/schema.sql
-supabase/seed.sql
-integration/INTEGRATION_GUIDE.md
-integration/sample-event.json
+Core
+- server.js
+- package.json
+- vercel.json
+- .env.example
+- .gitignore
+- README.md
+- UPGRADE_v1.0.1_TO_v1.1.0.md
+- validate-project.js
+- VALIDATION_REPORT_v1.1.0.txt
 
+Frontend
+- public/index.html
+- public/styles.css
+- public/app.js
 
-v1.0.1 FIXES
-- Removed Vercel catch-all rewrite that intercepted public/styles.css and public/app.js.
-- Static assets are now served directly from public/ by Vercel CDN.
-- Added CSS/JS cache-busting query version 1.0.1.
+Database
+- supabase/schema.sql
+- supabase/seed.sql
+- supabase/migrations/20260818_admin_roles.sql
+
+Integration
+- integration/INTEGRATION_GUIDE.md
+- integration/sample-event.json
+
+v1.1.0
+- Login changed from password-only to username + password.
+- Added roles: master (Quản lý chính) and manager (Quản lý).
+- Master can create managers, reset manager passwords, revoke/restore manager access.
+- Every account can change its own password.
+- Passwords are hashed with Node.js scrypt before database storage.
+- Session tokens include session_version; password reset/revoke invalidates old sessions.
+- Added admin audit log table.
+- Preserved dashboard, analytics, character management, AI restrictions, event ingestion and no-Google-Sheets architecture.
