@@ -14,7 +14,9 @@ const OFF_TOPIC_MESSAGE = 'Tôi chỉ hỗ trợ phân tích dữ liệu hoạt 
 
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '256kb' }));
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+if (!process.env.VERCEL) {
+  app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+}
 
 function env(name, required = true) {
   const value = process.env[name];
@@ -224,7 +226,7 @@ app.get('/health', async (_req, res) => {
   res.json({
     ok: true,
     service: 'history-analytics-manager',
-    version: '1.1.1',
+    version: '1.1.2',
     databaseReady,
     aiConfigured: Boolean(process.env.OPENAI_API_KEY),
     roleBasedAdmin: true,
@@ -600,9 +602,8 @@ ${JSON.stringify(snapshot)}`;
   }
 });
 
-app.use((_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-
 if (!process.env.VERCEL) {
+  app.use((_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
   app.listen(PORT, () => console.log(`History Analytics Manager running at http://localhost:${PORT}`));
 }
 

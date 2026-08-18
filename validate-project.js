@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const mustExist = [
-  'server.js','package.json','vercel.json','.env.example','README.md',
+  'server.js','package.json','.env.example','README.md',
   'public/index.html','public/styles.css','public/app.js',
   'supabase/schema.sql','supabase/migrations/20260818_admin_roles.sql',
   'integration/INTEGRATION_GUIDE.md'
@@ -23,13 +23,11 @@ const schema = fs.readFileSync(path.join(root,'supabase/schema.sql'),'utf8');
 const env = fs.readFileSync(path.join(root,'.env.example'),'utf8');
 const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 
-const vercel = JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
-const rewrites = Array.isArray(vercel.rewrites) ? vercel.rewrites : [];
-check('Vercel API rewrite', rewrites.some(r => r.source === '/api/:path*' && r.destination === '/server.js'));
-check('Vercel health rewrite', rewrites.some(r => r.source === '/health' && r.destination === '/server.js'));
-check('no catch-all static rewrite', !rewrites.some(r => r.source === '/(.*)' || r.source === '/:path*'));
+check('Vercel zero-config: no vercel.json rewrite file', !fs.existsSync(path.join(root,'vercel.json')));
+check('Express default export', server.includes('export default app'));
+check('Vercel does not rely on express.static', server.includes('if (!process.env.VERCEL)') && server.includes('express.static'));
 
-check('version 1.1.1', pkg.version === '1.1.1');
+check('version 1.1.2', pkg.version === '1.1.2');
 check('no Google Sheets env', !env.includes('GOOGLE_SHEET'));
 check('no Google Sheets runtime', !server.toLowerCase().includes('google sheet') && !server.includes('GOOGLE_SHEET_URL'));
 check('event ingestion endpoint', server.includes("app.post('/api/events'"));

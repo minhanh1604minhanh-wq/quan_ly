@@ -1,6 +1,6 @@
 # HISTORY ANALYTICS MANAGER v1.1.1
 
-> Bản v1.1.1 giữ hệ thống đăng nhập nhiều cấp của v1.1.0 và sửa routing Vercel để `/api/*` và `/health` luôn đi vào Express, trong khi CSS/JS trong `public/` vẫn được Vercel phục vụ trực tiếp.
+> Bản v1.1.2 giữ hệ thống đăng nhập nhiều cấp và chuyển sang cơ chế Express zero-config chính thức của Vercel. Không dùng rewrite `/api/* -> /server.js`; Vercel tự phát hiện `server.js` là Express app, còn file trong `public/` được phục vụ như static assets.
 
 Website quản lý riêng cho giáo viên, thay cho Google Sheets.
 
@@ -61,7 +61,9 @@ Mở `http://localhost:3000`.
 3. Thêm các Environment Variables giống `.env.example`.
 4. Deploy.
 5. Kiểm tra `/health`. Nếu trả JSON có `"ok": true`, backend đã được route đúng.
-6. Sau đó mới thử đăng nhập. Nếu Vercel đã deploy bản cũ, hãy Redeploy sau khi push v1.1.1.
+6. Sau đó mới thử đăng nhập. Nếu Vercel đã deploy bản cũ, hãy Redeploy sau khi push v1.1.2.
+
+**Quan trọng:** bản v1.1.2 không có `vercel.json`. Hãy để Vercel tự phát hiện Express (zero-config). Root Directory phải là thư mục chứa trực tiếp `server.js`, `package.json` và `public/`. Không tự thêm rewrite `/api/*` vào `server.js`.
 
 ## 4. Kết nối website nhân vật
 
