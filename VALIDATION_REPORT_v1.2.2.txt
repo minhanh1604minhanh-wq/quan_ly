@@ -1,0 +1,13 @@
+HISTORY ANALYTICS MANAGER v1.2.2 — VALIDATION
+
+PASS  node --check public/app.js
+PASS  node --check server.js
+PASS  project validator
+PASS  status label no longer shows “tự động mỗi 5 giây”
+PASS  5-second polling logic preserved
+PASS  quick-guide troubleshooting item removed
+PASS  teacher-guide sections 8 and 9 removed
+PASS  typography contrast/weight sharpened
+PASS  Times New Roman preserved
+PASS  Google Sheets remains absent
+PASS  Supabase/RBAC/AI/analytics endpoints unchanged

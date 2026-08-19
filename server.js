@@ -316,7 +316,7 @@ app.get('/health', async (_req, res) => {
   res.json({
     ok: true,
     service: 'history-analytics-manager',
-    version: '1.2.1',
+    version: '1.2.2',
     databaseReady,
     aiConfigured: Boolean(process.env.OPENAI_API_KEY),
     roleBasedAdmin: true,

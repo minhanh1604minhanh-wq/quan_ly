@@ -1,4 +1,4 @@
-# HISTORY ANALYTICS MANAGER v1.2.1
+# HISTORY ANALYTICS MANAGER v1.2.2
 
 > Bản v1.1.2 giữ hệ thống đăng nhập nhiều cấp và chuyển sang cơ chế Express zero-config chính thức của Vercel. Không dùng rewrite `/api/* -> /server.js`; Vercel tự phát hiện `server.js` là Express app, còn file trong `public/` được phục vụ như static assets.
 
@@ -94,3 +94,10 @@ Thông báo từ chối cố định:
 - Bỏ chỉ số Yêu thích khỏi Dashboard.
 - Hiển thị tên hoạt động bằng tiếng Việt thay cho mã kỹ thuật như `whatif_question`.
 - AI dùng từ ngữ đơn giản, tránh tên trường dữ liệu và thuật ngữ kỹ thuật.
+
+
+## v1.2.2 – Tinh gọn hướng dẫn và tăng độ nét chữ
+- Nhãn cập nhật chỉ hiển thị thời điểm cập nhật, không hiện dòng “tự động mỗi 5 giây”.
+- Bỏ phần hướng dẫn xử lý “dữ liệu chưa xuất hiện” và hai mục kỹ thuật cuối của bản hướng dẫn đầy đủ.
+- Tăng độ tương phản và độ đậm của chữ nhưng giữ Times New Roman và phong cách giấy cổ.
+- Cơ chế tự lấy dữ liệu mỗi 5 giây vẫn hoạt động như cũ.

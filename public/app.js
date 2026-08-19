@@ -41,7 +41,7 @@ function participantLabel(row, index = 0) {
 }
 function updateFreshStatus() {
   const now = new Date().toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  setStatus(`Cập nhật ${now} · tự động mỗi 5 giây`, true);
+  setStatus(`Cập nhật ${now}`, true);
 }
 
 const sectionTitles = {

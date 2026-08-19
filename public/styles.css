@@ -1,8 +1,8 @@
 :root{
-  --paper:#f6efdf;--paper-2:#efe3c8;--ink:#3a3028;--muted:#756b60;--line:#cbb892;
+  --paper:#f6efdf;--paper-2:#efe3c8;--ink:#24170f;--muted:#5b4939;--line:#c3ad82;
   --accent:#8f3429;--accent-dark:#6f261f;--shadow:0 18px 40px rgba(62,45,28,.14);--radius:18px;
 }
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Times New Roman",Times,serif;color:var(--ink);background:#d8cfbd}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Times New Roman",Times,serif;color:var(--ink);background:#d8cfbd;text-rendering:optimizeLegibility;-webkit-font-smoothing:auto;-moz-osx-font-smoothing:auto}body{font-weight:500}
 body{background-image:radial-gradient(circle at 20% 10%,rgba(255,255,255,.35),transparent 28%),linear-gradient(135deg,#d9d0bf,#c8bea9)}
 button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}.hidden{display:none!important}.muted{color:var(--muted)}
 .paper-card{background:linear-gradient(180deg,rgba(255,252,244,.96),rgba(246,239,223,.98));border:1px solid var(--line);box-shadow:var(--shadow);border-radius:var(--radius)}
@@ -34,3 +34,12 @@ label{display:grid;gap:7px;font-weight:700;font-size:14px}input,select,textarea{
 @media(max-width:820px){.guide-grid{grid-template-columns:1fr}}
 
 .guide-link-btn{display:inline-block;border:1px solid var(--accent-dark);background:var(--accent);color:#fff;text-decoration:none;padding:9px 13px;border-radius:9px;font-weight:700}.guide-link-btn:hover{background:var(--accent-dark)}
+
+
+/* v1.2.2 — tăng độ nét chữ, giữ nguyên phong cách giấy cổ */
+.main-content,.paper-card,.panel,.guide-doc,.data-table,input,select,textarea,button{color:var(--ink)}
+.muted,.note,.stat-card span,.stat-card small,.rank-row small,.data-table th,.form-message{color:var(--muted);font-weight:500}
+.topbar h1,.panel h2,.guide-doc h1,.guide-doc h2,.guide-grid h3,.data-table strong,.rank-row strong{font-weight:700}
+.data-table td,.guide-grid p,.guide-doc p,.guide-doc li,.ai-answer{font-weight:500}
+.status-pill{font-weight:600;background:#f7f0df}
+.paper-card{background:linear-gradient(180deg,#fffaf0,#f6efdf)}

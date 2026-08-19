@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Hướng dẫn giáo viên — Bảo tàng lịch sử tương tác</title>
-  <link rel="stylesheet" href="/styles.css?v=1.2.1">
+  <link rel="stylesheet" href="/styles.css?v=1.2.2">
   <style>
     .guide-doc{width:min(980px,calc(100% - 28px));margin:28px auto;padding:30px}
     .guide-doc h1{margin:5px 0 10px;font-size:34px}.guide-doc h2{margin-top:28px;color:var(--accent-dark)}
@@ -50,17 +50,6 @@
       <li>Tài khoản Quản lý chính không thể bị xóa.</li>
     </ul>
 
-    <h2>8. Nếu website nhân vật đã dùng nhưng Dashboard chưa có dữ liệu</h2>
-    <ol>
-      <li>Vercel website nhân vật phải có <code>ANALYTICS_API_URL=https://quan-ly-s7j8.vercel.app</code>.</li>
-      <li><code>ANALYTICS_INGEST_KEY</code> phải giống hệt key của website quản lý.</li>
-      <li>Redeploy website nhân vật sau khi sửa Environment Variables.</li>
-      <li>Mở phiên mới, nhập tên, hoàn tất màn bụi và dùng một chức năng.</li>
-      <li>Quay lại Dashboard, tải lại trang hoặc bấm Áp dụng.</li>
-    </ol>
-
-    <h2>9. Bảo mật</h2>
-    <p>Không đưa các key <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>OPENAI_API_KEY</code>, <code>ANALYTICS_INGEST_KEY</code> vào frontend hoặc GitHub.</p>
   </article>
 </body>
 </html>

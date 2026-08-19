@@ -1,4 +1,4 @@
-History Analytics Manager v1.2.1 — Vietnamese labels + 5s auto refresh + simpler AI
+History Analytics Manager v1.2.2 — sharper text + simplified teacher guide + 5s auto refresh
 
 Core
 - server.js
