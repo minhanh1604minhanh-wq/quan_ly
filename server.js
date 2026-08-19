@@ -215,6 +215,10 @@ async function analyticsSnapshot(query = {}) {
   return data || { totals: {}, characters: [], participants: [], features: [], daily: [], recentEvents: [] };
 }
 
+app.get('/', (_req, res) => {
+  res.redirect('/index.html');
+});
+
 app.get('/health', async (_req, res) => {
   let databaseReady = false;
   try {
@@ -226,7 +230,7 @@ app.get('/health', async (_req, res) => {
   res.json({
     ok: true,
     service: 'history-analytics-manager',
-    version: '1.1.2',
+    version: '1.1.3',
     databaseReady,
     aiConfigured: Boolean(process.env.OPENAI_API_KEY),
     roleBasedAdmin: true,
