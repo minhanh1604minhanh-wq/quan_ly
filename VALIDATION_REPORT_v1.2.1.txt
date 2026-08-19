@@ -1,0 +1,64 @@
+HISTORY ANALYTICS MANAGER v1.2.1 — VALIDATION
+
+PASS  node --check server.js
+PASS  node --check public/app.js
+PASS  validate-project.js (all checks)
+PASS  auto refresh interval = 5000 ms
+PASS  auto refresh pauses when tab hidden
+PASS  auto refresh resumes immediately when tab visible
+PASS  applied filters are preserved during polling
+PASS  Favorites card/count removed from teacher dashboard
+PASS  participant UUID is not rendered in teacher-facing participant/activity UI
+PASS  AI context excludes participant_id/UUID
+PASS  AI prompt requires simple Vietnamese wording
+PASS  raw event codes mapped to Vietnamese teacher-facing labels
+PASS  Supabase/RBAC/analytics ingestion remain unchanged
+PASS  Google Sheets remains absent
+PASS  file server.js
+PASS  file package.json
+PASS  file .env.example
+PASS  file README.md
+PASS  file public/index.html
+PASS  file public/styles.css
+PASS  file public/app.js
+PASS  file supabase/schema.sql
+PASS  file supabase/migrations/20260818_admin_roles.sql
+PASS  file integration/INTEGRATION_GUIDE.md
+PASS  file HUONG_DAN_SU_DUNG_GIAO_VIEN.md
+PASS  file public/teacher-guide.html
+PASS  Vercel zero-config: no vercel.json rewrite file
+PASS  Express default export
+PASS  Vercel does not rely on express.static
+PASS  version 1.2.1
+PASS  root route redirects to index.html
+PASS  no Google Sheets env
+PASS  no Google Sheets runtime
+PASS  event ingestion endpoint
+PASS  username + password login
+PASS  password hashing
+PASS  signed admin session
+PASS  master authorization middleware
+PASS  admin list endpoint
+PASS  admin create endpoint
+PASS  admin revoke/restore endpoint
+PASS  admin reset password endpoint
+PASS  revoked admin delete endpoint
+PASS  self password change endpoint
+PASS  manager UI restricted
+PASS  admin table schema
+PASS  admin audit schema
+PASS  admin RLS
+PASS  AI restricted endpoint
+PASS  off-topic fixed response
+PASS  participant name required in ingestion
+PASS  character management endpoint
+PASS  hidden character delete endpoint
+PASS  analytics SQL function
+PASS  dashboard UI
+PASS  AI UI
+PASS  admin management UI
+PASS  teacher guide UI
+PASS  brand glyph removed
+PASS  all static JS IDs exist in HTML
+
+All project validation checks passed.

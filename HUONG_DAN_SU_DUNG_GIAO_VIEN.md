@@ -6,7 +6,7 @@
 - Quản lý thường không thể tự cấp thêm quyền quản lý.
 
 ## 2. Tổng quan
-Dashboard hiển thị số nhân vật đang hoạt động, người tham gia, phiên học, tổng tương tác, lượt yêu thích (nếu website có ghi nhận) và tổng thời lượng phiên.
+Dashboard hiển thị số nhân vật đang hoạt động, người tham gia, phiên học, tổng lượt tương tác và tổng thời gian sử dụng. Dữ liệu tự cập nhật khoảng mỗi 5 giây khi trang đang mở.
 
 ### Bộ lọc
 Có thể lọc theo Từ ngày / Đến ngày / Nhân vật / Lớp / Trường. Bấm **Áp dụng** để cập nhật thống kê; **Xóa lọc** để trở về toàn bộ dữ liệu.
@@ -21,12 +21,11 @@ Có thể lọc theo Từ ngày / Đến ngày / Nhân vật / Lớp / Trường
 Website nhân vật yêu cầu **Tên người tham gia**; Lớp và Trường không bắt buộc. Trang Người tham gia xếp hạng theo số phiên và tương tác.
 
 ## 5. Hoạt động
-Có thể nhận: `session_start`, `session_end`, `page_view`, `character_open`, `profile_open`, `timeline_view`, `narration_play`, `ask_question`, `whatif_question`, `roleplay_start`, `roleplay_new_scenario`, `roleplay_choice`, `roleplay_end`, `language_change`.
+Trang quản lý hiển thị tên tiếng Việt dễ hiểu cho các hoạt động, ví dụ: Bắt đầu phiên học, Mở hồ sơ, Nghe thuyết minh, Tra cứu sử liệu, Hỏi Giả định lịch sử, Bắt đầu Nhập vai, Chọn phương án nhập vai và Đổi ngôn ngữ.
 
 ## 6. AI phân tích
 AI chỉ phân tích dữ liệu quản lý/thống kê của hệ thống. Nếu câu hỏi ngoài phạm vi, AI từ chối.
 - **Được quan tâm**: dựa trên người tham gia, phiên và tương tác.
-- **Được yêu thích**: chỉ dựa trên `favorite_add`/`favorite_remove`, không suy diễn từ lượt xem.
 
 ## 7. Quản lý tài khoản
 Chỉ Quản lý chính có thể tạo quản lý, đặt lại mật khẩu, thu hồi/khôi phục quyền và xóa tài khoản quản lý đã bị thu hồi. Không thể xóa tài khoản Quản lý chính.
@@ -46,3 +45,9 @@ Không đưa `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `ANALYTICS_INGEST_KE
 
 ## 10. Thêm nhân vật mới
 Đăng ký Slug + tên trong Dashboard, sau đó website nhân vật mới gửi sự kiện về cùng `ANALYTICS_API_URL` và dùng cùng `ANALYTICS_INGEST_KEY`.
+
+## Tự động cập nhật
+Dashboard tự lấy dữ liệu mới mỗi khoảng 5 giây khi tab đang mở. Khi chuyển sang tab khác, hệ thống tạm dừng để tiết kiệm tài nguyên; quay lại tab sẽ cập nhật ngay. Bộ lọc đang áp dụng được giữ nguyên.
+
+## Mã nội bộ người tham gia
+Các chuỗi dài như UUID chỉ là mã kỹ thuật dùng bên trong hệ thống để phân biệt bản ghi. Giáo viên không cần sử dụng mã này. Giao diện và AI không hiển thị mã nội bộ; nếu thiếu tên, hệ thống dùng nhãn dễ hiểu như “Người tham gia #01”.

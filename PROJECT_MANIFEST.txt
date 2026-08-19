@@ -1,4 +1,4 @@
-History Analytics Manager v1.2.0 — RBAC + Delete + Analytics + Teacher Guide
+History Analytics Manager v1.2.1 — Vietnamese labels + 5s auto refresh + simpler AI
 
 Core
 - server.js
@@ -36,3 +36,11 @@ v1.2.0 highlights
 - Added teacher guide in dashboard and standalone files.
 - Event ingestion stays server-side and does not expose analytics secret.
 - Google Sheets remains fully removed.
+
+
+v1.2.1 highlights
+- Dashboard tự cập nhật mỗi 5 giây.
+- Bỏ chỉ số Yêu thích khỏi giao diện.
+- Ẩn UUID/mã nội bộ khỏi giáo viên và AI.
+- Dịch tên hoạt động kỹ thuật sang tiếng Việt dễ hiểu.
+- AI trả lời ngắn, dùng từ ngữ đơn giản.

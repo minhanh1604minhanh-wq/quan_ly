@@ -1,5 +1,48 @@
 const $ = (id) => document.getElementById(id);
-const state = { authenticated: false, user: null, snapshot: null, characters: [], admins: [], currentSection: 'overview' };
+const state = { authenticated: false, user: null, snapshot: null, characters: [], admins: [], currentSection: 'overview', appliedFilters: null, refreshInFlight: false, autoRefreshTimer: null };
+
+const AUTO_REFRESH_MS = 5000;
+const EVENT_LABELS = {
+  session_start: 'Bắt đầu phiên học',
+  session_end: 'Kết thúc phiên học',
+  page_view: 'Mở trang nhân vật',
+  character_open: 'Khám phá nhân vật',
+  profile_open: 'Mở hồ sơ',
+  timeline_view: 'Xem dòng thời gian',
+  qa_open: 'Mở Tra cứu sử liệu',
+  ask_question: 'Đặt câu hỏi Tra cứu sử liệu',
+  whatif_open: 'Mở Giả định lịch sử',
+  whatif_question: 'Hỏi Giả định lịch sử',
+  roleplay_open: 'Mở Nhập vai quyết sách',
+  roleplay_start: 'Bắt đầu tình huống nhập vai',
+  roleplay_new_scenario: 'Bắt đầu tình huống nhập vai mới',
+  roleplay_choice: 'Chọn phương án nhập vai',
+  roleplay_end: 'Kết thúc nhập vai',
+  narration_play: 'Nghe thuyết minh',
+  language_change: 'Đổi ngôn ngữ',
+  pdf_export: 'Xuất phiếu học tập',
+  favorite_add: 'Đánh dấu yêu thích',
+  favorite_remove: 'Bỏ đánh dấu yêu thích'
+};
+
+function friendlyEvent(value) {
+  const key = String(value || '').trim();
+  if (!key) return 'Hoạt động khác';
+  return EVENT_LABELS[key] || (/[_-]/.test(key) ? 'Hoạt động khác' : key);
+}
+function friendlyFeature(value) {
+  const key = String(value || '').trim();
+  if (!key) return 'Hoạt động khác';
+  return EVENT_LABELS[key] || key;
+}
+function participantLabel(row, index = 0) {
+  const name = String(row?.name || row?.participant || '').trim();
+  return name || `Người tham gia #${String(index + 1).padStart(2, '0')}`;
+}
+function updateFreshStatus() {
+  const now = new Date().toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  setStatus(`Cập nhật ${now} · tự động mỗi 5 giây`, true);
+}
 
 const sectionTitles = {
   overview: 'Tổng quan',
@@ -74,7 +117,7 @@ function currentFilters() {
     schoolName: $('filterSchool').value.trim()
   };
 }
-function queryString(filters = currentFilters()) {
+function queryString(filters = state.appliedFilters || currentFilters()) {
   const p = new URLSearchParams();
   Object.entries(filters).forEach(([k,v]) => { if (v) p.set(k, v); });
   return p.toString();
@@ -95,17 +138,33 @@ function renderCharacterFilter() {
   if ([...$('filterCharacter').options].some(o => o.value === selected)) $('filterCharacter').value = selected;
 }
 
-async function loadSnapshot() {
-  setStatus('Đang tải dữ liệu…');
+async function loadSnapshot({ quiet = false } = {}) {
+  if (state.refreshInFlight || !state.authenticated) return;
+  state.refreshInFlight = true;
+  if (!quiet) setStatus('Đang tải dữ liệu…');
   try {
     const result = await api(`/api/analytics/summary?${queryString()}`);
     state.snapshot = result.data;
     renderSnapshot();
-    setStatus('Dữ liệu đã cập nhật', true);
+    updateFreshStatus();
   } catch (error) {
     setStatus(error.message || 'Không thể tải dữ liệu', false, true);
+  } finally {
+    state.refreshInFlight = false;
   }
 }
+
+function startAutoRefresh() {
+  if (state.autoRefreshTimer) return;
+  state.autoRefreshTimer = setInterval(() => {
+    if (!state.authenticated || document.hidden) return;
+    void loadSnapshot({ quiet: true });
+  }, AUTO_REFRESH_MS);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && state.authenticated) void loadSnapshot({ quiet: true });
+});
 
 function setStatus(text, ok = false, error = false) {
   const el = $('statusPill');
@@ -121,7 +180,6 @@ function renderSnapshot() {
   $('statParticipants').textContent = fmtNumber(t.participants);
   $('statSessions').textContent = fmtNumber(t.sessions);
   $('statInteractions').textContent = fmtNumber(t.interactions);
-  $('statFavorites').textContent = fmtNumber(t.favorites);
   $('statDuration').textContent = fmtDuration(t.durationSeconds);
   renderCharacterRanking(s.characters || []);
   renderFeatures(s.features || []);
@@ -137,7 +195,7 @@ function renderCharacterRanking(rows) {
   el.innerHTML = rows.slice(0, 10).map((r, i) => `
     <div class="rank-row">
       <div class="rank-no">${i + 1}</div>
-      <div><strong>${escapeHtml(r.name)}</strong><small>${fmtNumber(r.participants)} người · ${fmtNumber(r.sessions)} phiên · ${fmtNumber(r.favorites)} yêu thích</small></div>
+      <div><strong>${escapeHtml(r.name)}</strong><small>${fmtNumber(r.participants)} người · ${fmtNumber(r.sessions)} phiên</small></div>
       <div class="rank-value">${fmtNumber(r.interactions)}<small style="display:block">tương tác</small></div>
     </div>`).join('');
 }
@@ -149,7 +207,7 @@ function renderFeatures(rows) {
   el.className = 'bar-list';
   el.innerHTML = rows.slice(0, 12).map(r => `
     <div class="bar-row">
-      <span title="${escapeHtml(r.feature)}">${escapeHtml(r.feature)}</span>
+      <span title="${escapeHtml(friendlyFeature(r.feature))}">${escapeHtml(friendlyFeature(r.feature))}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Number(r.count || 0) / max * 100)}%"></div></div>
       <b>${fmtNumber(r.count)}</b>
     </div>`).join('');
@@ -172,7 +230,7 @@ function renderParticipants(rows) {
   const el = $('participantTableWrap');
   if (!rows.length) { el.innerHTML = '<p class="empty">Chưa có dữ liệu người tham gia.</p>'; return; }
   el.innerHTML = `<table class="data-table"><thead><tr><th>#</th><th>Tên</th><th>Lớp</th><th>Trường</th><th>Phiên</th><th>Tương tác</th><th>Thời gian</th><th>Lần cuối</th></tr></thead><tbody>
-    ${rows.map((r,i) => `<tr><td>${i+1}</td><td><strong>${escapeHtml(r.name)}</strong></td><td>${escapeHtml(r.class_name || '—')}</td><td>${escapeHtml(r.school_name || '—')}</td><td>${fmtNumber(r.sessions)}</td><td>${fmtNumber(r.interactions)}</td><td>${fmtDuration(r.duration_seconds)}</td><td>${escapeHtml(fmtDate(r.last_seen))}</td></tr>`).join('')}
+    ${rows.map((r,i) => `<tr><td>${i+1}</td><td><strong>${escapeHtml(participantLabel(r,i))}</strong></td><td>${escapeHtml(r.class_name || '—')}</td><td>${escapeHtml(r.school_name || '—')}</td><td>${fmtNumber(r.sessions)}</td><td>${fmtNumber(r.interactions)}</td><td>${fmtDuration(r.duration_seconds)}</td><td>${escapeHtml(fmtDate(r.last_seen))}</td></tr>`).join('')}
     </tbody></table>`;
 }
 
@@ -180,7 +238,7 @@ function renderActivity(rows) {
   const el = $('activityTableWrap');
   if (!rows.length) { el.innerHTML = '<p class="empty">Chưa có hoạt động.</p>'; return; }
   el.innerHTML = `<table class="data-table"><thead><tr><th>Thời gian</th><th>Người tham gia</th><th>Nhân vật</th><th>Loại</th><th>Chức năng</th><th>Nội dung</th></tr></thead><tbody>
-    ${rows.map(r => `<tr><td>${escapeHtml(fmtDate(r.occurredAt))}</td><td><strong>${escapeHtml(r.participant)}</strong><br><small>${escapeHtml([r.className,r.schoolName].filter(Boolean).join(' · ') || '')}</small></td><td>${escapeHtml(r.character)}</td><td><span class="badge">${escapeHtml(r.eventType)}</span></td><td>${escapeHtml(r.feature || '—')}</td><td>${escapeHtml(r.content || '—')}</td></tr>`).join('')}
+    ${rows.map((r,i) => `<tr><td>${escapeHtml(fmtDate(r.occurredAt))}</td><td><strong>${escapeHtml(participantLabel(r,i))}</strong><br><small>${escapeHtml([r.className,r.schoolName].filter(Boolean).join(' · ') || '')}</small></td><td>${escapeHtml(r.character)}</td><td><span class="badge">${escapeHtml(friendlyEvent(r.eventType))}</span></td><td>${escapeHtml(friendlyFeature(r.feature || r.eventType))}</td><td>${escapeHtml(r.content || '—')}</td></tr>`).join('')}
     </tbody></table>`;
 }
 
@@ -301,8 +359,8 @@ $('loginForm').addEventListener('submit', async e => {
 $('logoutBtn').addEventListener('click', async () => { try { await api('/api/auth/logout', { method:'POST' }); } catch {} showLogin(); });
 
 document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => switchSection(btn.dataset.section)));
-$('applyFilters').addEventListener('click', loadSnapshot);
-$('clearFilters').addEventListener('click', () => { ['filterFrom','filterTo','filterClass','filterSchool'].forEach(id => $(id).value = ''); $('filterCharacter').value=''; loadSnapshot(); });
+$('applyFilters').addEventListener('click', () => { state.appliedFilters = currentFilters(); void loadSnapshot(); });
+$('clearFilters').addEventListener('click', () => { ['filterFrom','filterTo','filterClass','filterSchool'].forEach(id => $(id).value = ''); $('filterCharacter').value=''; state.appliedFilters = currentFilters(); void loadSnapshot(); });
 
 $('characterForm').addEventListener('submit', async e => {
   e.preventDefault(); const msg = $('characterFormMessage'); msg.textContent = 'Đang thêm…';
@@ -352,7 +410,7 @@ $('aiForm').addEventListener('submit', async e => {
 });
 
 async function initialize() {
-  try { await loadCharacters(); await loadSnapshot(); if (isMaster()) await loadAdmins(); applyRoleUI(); switchSection(state.currentSection); }
+  try { state.appliedFilters = currentFilters(); await loadCharacters(); await loadSnapshot(); startAutoRefresh(); if (isMaster()) await loadAdmins(); applyRoleUI(); switchSection(state.currentSection); }
   catch (error) { setStatus(error.message, false, true); }
 }
 

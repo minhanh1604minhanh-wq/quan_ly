@@ -1,4 +1,4 @@
-# HISTORY ANALYTICS MANAGER v1.2.0
+# HISTORY ANALYTICS MANAGER v1.2.1
 
 > Bản v1.1.2 giữ hệ thống đăng nhập nhiều cấp và chuyển sang cơ chế Express zero-config chính thức của Vercel. Không dùng rewrite `/api/* -> /server.js`; Vercel tự phát hiện `server.js` là Express app, còn file trong `public/` được phục vụ như static assets.
 
@@ -86,3 +86,11 @@ Thông báo từ chối cố định:
 - Thêm mục **Hướng dẫn sử dụng** trong Dashboard và file `HUONG_DAN_SU_DUNG_GIAO_VIEN.md`.
 - Endpoint nhận dữ liệu vẫn là `POST /api/events` với header `x-analytics-key`.
 - Khi website nhân vật gửi sự kiện cho nhân vật đang Tạm ẩn, ingest không tự kích hoạt lại nhân vật đó.
+
+
+## v1.2.1 – Giao diện giáo viên đơn giản hơn
+- Tự động cập nhật thống kê mỗi 5 giây, giữ nguyên bộ lọc đang áp dụng.
+- Không hiển thị mã UUID/người tham gia cho giáo viên hoặc trong câu trả lời AI.
+- Bỏ chỉ số Yêu thích khỏi Dashboard.
+- Hiển thị tên hoạt động bằng tiếng Việt thay cho mã kỹ thuật như `whatif_question`.
+- AI dùng từ ngữ đơn giản, tránh tên trường dữ liệu và thuật ngữ kỹ thuật.

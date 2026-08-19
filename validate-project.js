@@ -27,7 +27,7 @@ check('Vercel zero-config: no vercel.json rewrite file', !fs.existsSync(path.joi
 check('Express default export', server.includes('export default app'));
 check('Vercel does not rely on express.static', server.includes('if (!process.env.VERCEL)') && server.includes('express.static'));
 
-check('version 1.2.0', pkg.version === '1.2.0');
+check('version 1.2.1', pkg.version === '1.2.1');
 check('root route redirects to index.html', server.includes("app.get('/',") && server.includes("res.redirect('/index.html')"));
 check('no Google Sheets env', !env.includes('GOOGLE_SHEET'));
 check('no Google Sheets runtime', !server.toLowerCase().includes('google sheet') && !server.includes('GOOGLE_SHEET_URL'));

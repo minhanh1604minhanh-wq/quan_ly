@@ -46,6 +46,92 @@ function cleanText(value, max = 2000) {
   return text.slice(0, max);
 }
 
+
+const TEACHER_EVENT_LABELS = {
+  session_start: 'Bắt đầu phiên học',
+  session_end: 'Kết thúc phiên học',
+  page_view: 'Mở trang nhân vật',
+  character_open: 'Khám phá nhân vật',
+  profile_open: 'Mở hồ sơ',
+  timeline_view: 'Xem dòng thời gian',
+  qa_open: 'Mở Tra cứu sử liệu',
+  ask_question: 'Đặt câu hỏi Tra cứu sử liệu',
+  whatif_open: 'Mở Giả định lịch sử',
+  whatif_question: 'Hỏi Giả định lịch sử',
+  roleplay_open: 'Mở Nhập vai quyết sách',
+  roleplay_start: 'Bắt đầu tình huống nhập vai',
+  roleplay_new_scenario: 'Bắt đầu tình huống nhập vai mới',
+  roleplay_choice: 'Chọn phương án nhập vai',
+  roleplay_end: 'Kết thúc nhập vai',
+  narration_play: 'Nghe thuyết minh',
+  language_change: 'Đổi ngôn ngữ',
+  pdf_export: 'Xuất phiếu học tập',
+  favorite_add: 'Đánh dấu yêu thích',
+  favorite_remove: 'Bỏ đánh dấu yêu thích'
+};
+
+function teacherEventLabel(value) {
+  const key = cleanText(value, 120);
+  return TEACHER_EVENT_LABELS[key] || (/[_-]/.test(key) ? 'Hoạt động khác' : key) || 'Hoạt động khác';
+}
+
+function teacherDuration(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours) return `${hours} giờ ${minutes} phút`;
+  if (minutes) return `${minutes} phút ${secs} giây`;
+  return `${secs} giây`;
+}
+
+function teacherDataText(snapshot = {}) {
+  const totals = snapshot.totals || {};
+  const characters = Array.isArray(snapshot.characters) ? snapshot.characters : [];
+  const participants = Array.isArray(snapshot.participants) ? snapshot.participants : [];
+  const features = Array.isArray(snapshot.features) ? snapshot.features : [];
+  const recent = Array.isArray(snapshot.recentEvents) ? snapshot.recentEvents : [];
+  const lines = [];
+  lines.push(`Tổng quan: ${Number(totals.characters || 0)} nhân vật; ${Number(totals.participants || 0)} người tham gia; ${Number(totals.sessions || 0)} phiên học; ${Number(totals.interactions || 0)} lượt tương tác; thời gian sử dụng ${teacherDuration(totals.durationSeconds)}.`);
+  if (characters.length) {
+    lines.push('Theo nhân vật:');
+    characters.slice(0, 20).forEach(c => lines.push(`- ${cleanText(c.name, 250) || 'Chưa rõ tên'}: ${Number(c.participants || 0)} người, ${Number(c.sessions || 0)} phiên, ${Number(c.interactions || 0)} lượt tương tác, thời gian ${teacherDuration(c.duration_seconds)}.`));
+  }
+  if (participants.length) {
+    lines.push('Người tham gia có nhiều hoạt động:');
+    participants.slice(0, 20).forEach((p, i) => {
+      const name = cleanText(p.name, 250) || `Người tham gia #${String(i + 1).padStart(2, '0')}`;
+      const extra = [cleanText(p.class_name, 200), cleanText(p.school_name, 300)].filter(Boolean).join(' · ');
+      lines.push(`- ${name}${extra ? ` (${extra})` : ''}: ${Number(p.sessions || 0)} phiên, ${Number(p.interactions || 0)} lượt tương tác, thời gian ${teacherDuration(p.duration_seconds)}.`);
+    });
+  }
+  if (features.length) {
+    lines.push('Mức độ sử dụng chức năng:');
+    features.slice(0, 20).forEach(f => lines.push(`- ${teacherEventLabel(f.feature)}: ${Number(f.count || 0)} lượt.`));
+  }
+  if (recent.length) {
+    lines.push('Một số hoạt động gần đây:');
+    recent.slice(0, 15).forEach((e, i) => {
+      const name = cleanText(e.participant, 250) || `Người tham gia #${String(i + 1).padStart(2, '0')}`;
+      lines.push(`- ${name} · ${cleanText(e.character, 250) || 'Nhân vật chưa rõ'} · ${teacherEventLabel(e.eventType)}${e.content ? ` · ${cleanText(e.content, 180)}` : ''}.`);
+    });
+  }
+  return lines.join('\n');
+}
+
+function cleanTeacherAnswer(value) {
+  return cleanText(value, 8000)
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, 'mã nội bộ')
+    .replace(/\bdataset\b/gi, 'dữ liệu hiện có')
+    .replace(/\bmetrics\b/gi, 'số liệu')
+    .replace(/\bsessions\b/gi, 'phiên học')
+    .replace(/\bparticipants\b/gi, 'người tham gia')
+    .replace(/\binteractions\b/gi, 'lượt tương tác')
+    .replace(/\brecentEvents\b/gi, 'hoạt động gần đây')
+    .replace(/\bparticipant_id\b/gi, 'mã người tham gia')
+    .replace(/\bUUID\b/gi, 'mã nội bộ');
+}
+
 function parseCookies(req) {
   const out = {};
   const raw = req.headers.cookie || '';
@@ -230,7 +316,7 @@ app.get('/health', async (_req, res) => {
   res.json({
     ok: true,
     service: 'history-analytics-manager',
-    version: '1.2.0',
+    version: '1.2.1',
     databaseReady,
     aiConfigured: Boolean(process.env.OPENAI_API_KEY),
     roleBasedAdmin: true,
@@ -613,12 +699,12 @@ function questionAllowed(question) {
   const q = question.toLowerCase();
   const domainTerms = [
     'nhân vật', 'người tham gia', 'học sinh', 'lớp', 'trường', 'truy cập', 'phiên', 'hoạt động',
-    'tương tác', 'tra cứu', 'giả định', 'nhập vai', 'yêu thích', 'quan tâm', 'website', 'hệ thống',
-    'dashboard', 'feature', 'chức năng', 'session', 'visitor', 'participant', 'engagement'
+    'tương tác', 'tra cứu', 'giả định', 'nhập vai', 'quan tâm', 'website', 'hệ thống',
+    'bảng điều khiển', 'chức năng', 'thời lượng', 'hoạt động'
   ];
   const analyticsTerms = [
     'bao nhiêu', 'tổng', 'nhiều nhất', 'ít nhất', 'thống kê', 'số lượt', 'sử dụng', 'so sánh',
-    'xu hướng', 'thời gian', 'hiệu quả', 'xếp hạng', 'tần suất', 'tỷ lệ', 'mức độ', 'quan tâm', 'yêu thích'
+    'xu hướng', 'thời gian', 'hiệu quả', 'xếp hạng', 'tần suất', 'tỷ lệ', 'mức độ', 'quan tâm'
   ];
   const improvementTerms = ['cải tiến', 'đề xuất', 'phương án cải thiện', 'nên sửa', 'nên cải thiện'];
   if (improvementTerms.some(term => q.includes(term))) return true;
@@ -637,21 +723,25 @@ app.post('/api/ai', requireAdmin, async (req, res) => {
 
     const snapshot = await analyticsSnapshot(req.body?.filters || {});
     const model = process.env.OPENAI_TEXT_MODEL || 'gpt-5-mini';
-    const prompt = `Bạn là trợ lý phân tích dữ liệu dành cho giáo viên trong hệ thống bảo tàng lịch sử tương tác.
-CHỈ trả lời câu hỏi liên quan dữ liệu hoạt động của hệ thống: số nhân vật, người tham gia, lớp/trường, lượt truy cập, phiên, tương tác, Tra cứu sử liệu, Giả định lịch sử, Nhập vai quyết sách, yêu thích, mức độ quan tâm, xu hướng sử dụng và đề xuất cải tiến dựa trên dữ liệu.
+    const dataText = teacherDataText(snapshot);
+    const prompt = `Bạn là trợ lý phân tích dành cho giáo viên trong hệ thống bảo tàng lịch sử tương tác.
+CHỈ trả lời về dữ liệu sử dụng hệ thống: số nhân vật, người tham gia, lớp/trường, lượt truy cập, phiên học, lượt tương tác, thời gian sử dụng, Tra cứu sử liệu, Giả định lịch sử, Nhập vai quyết sách, mức độ quan tâm, xu hướng sử dụng và đề xuất cải tiến.
 KHÔNG trả lời kiến thức lịch sử, thời tiết, chính trị thời sự, viết văn, lập trình hoặc câu hỏi ngoài phạm vi. Nếu ngoài phạm vi, trả đúng câu: "${OFF_TOPIC_MESSAGE}"
-Chỉ dùng dữ liệu JSON được cung cấp. Không bịa số. Nếu chưa đủ dữ liệu thì nói rõ chưa đủ dữ liệu.
-"Được yêu thích" chỉ dựa trên favorites/favorite_add. "Được quan tâm" phải giải thích dựa trên participants, sessions và interactions; không tự đồng nhất với yêu thích.
-Khi đề xuất cải tiến, nêu đó là đề xuất dựa trên hành vi sử dụng, không phải dữ kiện lịch sử.
-Trả lời ngắn gọn, rõ ràng, tiếng Việt.
+Chỉ dùng số liệu được cung cấp bên dưới. Không bịa số. Nếu chưa đủ dữ liệu thì nói rõ chưa đủ dữ liệu.
+Không nhắc hoặc hiển thị mã nội bộ của người tham gia. Không dùng các từ kỹ thuật hoặc tên trường dữ liệu như JSON, UUID, dataset, metrics, sessions, participants, interactions, recentEvents, eventType, feature, participant_id.
+Không dùng chỉ số "Yêu thích" vì dashboard hiện không theo dõi chỉ số này.
+Hãy dùng từ ngữ tiếng Việt đơn giản: "người tham gia", "phiên học", "lượt tương tác", "thời gian sử dụng", "dữ liệu hiện có".
+Cách trả lời: mở đầu bằng kết luận trực tiếp; sau đó 2–5 ý ngắn, dễ hiểu; chỉ thêm ghi chú khi thật sự cần. Không viết tiêu đề "KẾT QUẢ" nếu không cần.
+Khi nói nhân vật "được quan tâm", căn cứ vào số người tham gia, số phiên học, lượt tương tác và thời gian sử dụng. Nếu hệ thống mới có dữ liệu của một nhân vật, nói rõ chưa có cơ sở so sánh giữa nhiều nhân vật.
+Khi đề xuất cải tiến, nói rõ đó là đề xuất dựa trên hành vi sử dụng, không phải dữ kiện lịch sử.
 
-CÂU HỎI: ${question}
+CÂU HỎI CỦA GIÁO VIÊN: ${question}
 
-DỮ LIỆU:
-${JSON.stringify(snapshot)}`;
+DỮ LIỆU ĐÃ TỔNG HỢP:
+${dataText}`;
 
     const response = await openai().responses.create({ model, input: prompt });
-    const answer = cleanText(response.output_text, 8000) || 'Chưa đủ dữ liệu để trả lời.';
+    const answer = cleanTeacherAnswer(response.output_text) || 'Chưa đủ dữ liệu để trả lời.';
     res.json({ ok: true, answer, restricted: false });
   } catch (error) {
     console.error('AI error', error);
