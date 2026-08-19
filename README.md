@@ -1,4 +1,4 @@
-# HISTORY ANALYTICS MANAGER v1.1.1
+# HISTORY ANALYTICS MANAGER v1.2.0
 
 > Bản v1.1.2 giữ hệ thống đăng nhập nhiều cấp và chuyển sang cơ chế Express zero-config chính thức của Vercel. Không dùng rewrite `/api/* -> /server.js`; Vercel tự phát hiện `server.js` là Express app, còn file trong `public/` được phục vụ như static assets.
 
@@ -78,3 +78,11 @@ AI chỉ nhận snapshot thống kê do backend tính từ database. AI không �
 Thông báo từ chối cố định:
 
 > Tôi chỉ hỗ trợ phân tích dữ liệu hoạt động, mức độ quan tâm và hiệu quả sử dụng của hệ thống nhân vật lịch sử.
+
+## Thay đổi v1.2.0
+- Quản lý chính có thể **xóa vĩnh viễn** tài khoản quản lý đã bị Thu hồi quyền.
+- Quản lý chính có thể **xóa vĩnh viễn** nhân vật đã Tạm ẩn. Việc này xóa cả phiên/sự kiện thống kê liên quan tới nhân vật.
+- Bỏ biểu tượng tròn `史` ở sidebar.
+- Thêm mục **Hướng dẫn sử dụng** trong Dashboard và file `HUONG_DAN_SU_DUNG_GIAO_VIEN.md`.
+- Endpoint nhận dữ liệu vẫn là `POST /api/events` với header `x-analytics-key`.
+- Khi website nhân vật gửi sự kiện cho nhân vật đang Tạm ẩn, ingest không tự kích hoạt lại nhân vật đó.

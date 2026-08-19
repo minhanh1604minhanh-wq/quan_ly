@@ -8,6 +8,7 @@ const sectionTitles = {
   activity: 'Hoạt động',
   ai: 'AI phân tích',
   admins: 'Quản lý tài khoản',
+  guide: 'Hướng dẫn sử dụng',
   account: 'Tài khoản của tôi'
 };
 
@@ -186,8 +187,13 @@ function renderActivity(rows) {
 function renderCharacterAdmin() {
   const el = $('characterTableWrap');
   if (!state.characters.length) { el.innerHTML = '<p class="empty">Chưa có nhân vật.</p>'; return; }
-  el.innerHTML = `<table class="data-table"><thead><tr><th>Tên</th><th>Slug</th><th>EN</th><th>Trạng thái</th><th></th></tr></thead><tbody>
-    ${state.characters.map(c => `<tr><td><strong>${escapeHtml(c.name_vi)}</strong></td><td><code>${escapeHtml(c.slug)}</code></td><td>${escapeHtml(c.name_en || '—')}</td><td><span class="badge ${c.active ? '' : 'off'}">${c.active ? 'Đang dùng' : 'Tạm ẩn'}</span></td><td><button class="toggle-btn" data-toggle-character="${escapeHtml(c.id)}" data-active="${c.active ? '1':'0'}">${c.active ? 'Tạm ẩn':'Kích hoạt'}</button></td></tr>`).join('')}
+  el.innerHTML = `<table class="data-table"><thead><tr><th>Tên</th><th>Slug</th><th>EN</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+    ${state.characters.map(c => {
+      const deleteBtn = (!c.active && isMaster())
+        ? `<button class="toggle-btn danger-btn" data-delete-character="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name_vi)}">Xóa</button>`
+        : '';
+      return `<tr><td><strong>${escapeHtml(c.name_vi)}</strong></td><td><code>${escapeHtml(c.slug)}</code></td><td>${escapeHtml(c.name_en || '—')}</td><td><span class="badge ${c.active ? '' : 'off'}">${c.active ? 'Đang dùng' : 'Tạm ẩn'}</span></td><td><div class="admin-actions"><button class="toggle-btn" data-toggle-character="${escapeHtml(c.id)}" data-active="${c.active ? '1':'0'}">${c.active ? 'Tạm ẩn':'Kích hoạt'}</button>${deleteBtn}</div></td></tr>`;
+    }).join('')}
     </tbody></table>`;
   el.querySelectorAll('[data-toggle-character]').forEach(btn => btn.addEventListener('click', async () => {
     btn.disabled = true;
@@ -196,6 +202,18 @@ function renderCharacterAdmin() {
       await loadCharacters();
       await loadSnapshot();
     } catch (e) { alert(e.message); }
+    finally { btn.disabled = false; }
+  }));
+  el.querySelectorAll('[data-delete-character]').forEach(btn => btn.addEventListener('click', async () => {
+    const name = btn.dataset.name || 'nhân vật này';
+    if (!confirm(`XÓA VĨNH VIỄN ${name}?\n\nToàn bộ phiên học và hoạt động thống kê gắn với nhân vật này cũng sẽ bị xóa. Thao tác không thể hoàn tác.`)) return;
+    if (!confirm('Xác nhận lần cuối: bạn chắc chắn muốn xóa vĩnh viễn?')) return;
+    btn.disabled = true;
+    try {
+      await api(`/api/characters/${encodeURIComponent(btn.dataset.deleteCharacter)}`, { method:'DELETE' });
+      await loadCharacters();
+      await loadSnapshot();
+    } catch (error) { alert(error.message); }
     finally { btn.disabled = false; }
   }));
 }
@@ -216,7 +234,7 @@ function renderAdmins() {
       const master = a.role === 'master';
       const actions = master
         ? '<span class="note">Tài khoản gốc</span>'
-        : `<div class="admin-actions"><button class="toggle-btn" data-reset-admin="${escapeHtml(a.id)}" data-name="${escapeHtml(a.username)}">Đặt lại mật khẩu</button><button class="toggle-btn ${a.active ? 'danger-btn' : ''}" data-status-admin="${escapeHtml(a.id)}" data-active="${a.active ? '1':'0'}">${a.active ? 'Thu hồi quyền' : 'Khôi phục quyền'}</button></div>`;
+        : `<div class="admin-actions"><button class="toggle-btn" data-reset-admin="${escapeHtml(a.id)}" data-name="${escapeHtml(a.username)}">Đặt lại mật khẩu</button><button class="toggle-btn ${a.active ? 'danger-btn' : ''}" data-status-admin="${escapeHtml(a.id)}" data-active="${a.active ? '1':'0'}">${a.active ? 'Thu hồi quyền' : 'Khôi phục quyền'}</button>${a.active ? '' : `<button class="toggle-btn danger-btn" data-delete-admin="${escapeHtml(a.id)}" data-name="${escapeHtml(a.username)}">Xóa</button>`}</div>`;
       return `<tr><td><strong>${escapeHtml(a.username)}</strong></td><td><span class="badge ${master ? 'master-badge' : ''}">${master ? 'Quản lý chính' : 'Quản lý'}</span></td><td><span class="badge ${a.active ? '' : 'off'}">${a.active ? 'Đang hoạt động' : 'Đã thu hồi'}</span></td><td>${escapeHtml(fmtDate(a.last_login) || 'Chưa đăng nhập')}</td><td>${actions}</td></tr>`;
     }).join('')}
     </tbody></table>`;
@@ -246,6 +264,18 @@ function renderAdmins() {
     } catch (error) { alert(error.message); }
     finally { btn.disabled = false; }
   }));
+
+  el.querySelectorAll('[data-delete-admin]').forEach(btn => btn.addEventListener('click', async () => {
+    const name = btn.dataset.name || 'tài khoản này';
+    if (!confirm(`XÓA VĨNH VIỄN tài khoản ${name}?\n\nTài khoản sẽ không thể khôi phục. Dữ liệu thống kê của người tham gia không bị xóa.`)) return;
+    if (!confirm('Xác nhận lần cuối: xóa vĩnh viễn tài khoản quản lý này?')) return;
+    btn.disabled = true;
+    try {
+      await api(`/api/admins/${encodeURIComponent(btn.dataset.deleteAdmin)}`, { method:'DELETE' });
+      await loadAdmins();
+    } catch (error) { alert(error.message); }
+    finally { btn.disabled = false; }
+  }));
 }
 
 function switchSection(name) {
@@ -257,7 +287,7 @@ function switchSection(name) {
   $(`section-${name}`).classList.remove('hidden');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.section === name));
   $('pageTitle').textContent = sectionTitles[name] || 'Quản lý';
-  $('filtersPanel').classList.toggle('hidden', name === 'admins' || name === 'account');
+  $('filtersPanel').classList.toggle('hidden', name === 'admins' || name === 'account' || name === 'guide');
   if (name === 'admins' && isMaster()) loadAdmins().catch(error => alert(error.message));
 }
 

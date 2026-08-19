@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hướng dẫn giáo viên — Bảo tàng lịch sử tương tác</title>
+  <link rel="stylesheet" href="/styles.css?v=1.2.0">
+  <style>
+    .guide-doc{width:min(980px,calc(100% - 28px));margin:28px auto;padding:30px}
+    .guide-doc h1{margin:5px 0 10px;font-size:34px}.guide-doc h2{margin-top:28px;color:var(--accent-dark)}
+    .guide-doc li,.guide-doc p{line-height:1.65}.guide-doc code{background:#efe3c8;padding:2px 5px;border-radius:5px}
+    .guide-doc .back-link{display:inline-block;margin-bottom:12px;color:var(--accent-dark);font-weight:700}
+  </style>
+</head>
+<body>
+  <article class="paper-card guide-doc">
+    <a class="back-link" href="/index.html">← Quay lại trang quản lý</a>
+    <p class="eyebrow">HƯỚNG DẪN GIÁO VIÊN</p>
+    <h1>Hệ thống quản lý Bảo tàng Lịch sử Tương tác</h1>
+    <p>Hướng dẫn này dành cho giáo viên và người quản trị hệ thống.</p>
+
+    <h2>1. Đăng nhập</h2>
+    <p>Nhập Tên quản lý và Mật khẩu. Quản lý chính có thêm quyền tạo/thu hồi/xóa tài khoản quản lý.</p>
+
+    <h2>2. Tổng quan & bộ lọc</h2>
+    <p>Dashboard hiển thị nhân vật, người tham gia, phiên học, tương tác, thời lượng và các bảng xếp hạng. Có thể lọc theo ngày, nhân vật, lớp và trường.</p>
+
+    <h2>3. Nhân vật</h2>
+    <ul>
+      <li><b>Slug</b>: mã không dấu, ví dụ <code>trung-trac</code>, <code>ngo-quyen</code>.</li>
+      <li><b>Tạm ẩn</b>: giữ dữ liệu nhưng ngừng dùng nhân vật trong danh sách hoạt động.</li>
+      <li><b>Xóa</b>: chỉ Quản lý chính và chỉ khi nhân vật đã Tạm ẩn. Xóa nhân vật cũng xóa các phiên/sự kiện liên quan.</li>
+    </ul>
+
+    <h2>4. Người tham gia</h2>
+    <p>Tên là bắt buộc; lớp và trường tùy chọn. Hệ thống thống kê số phiên, tương tác, thời lượng và thời điểm gần nhất.</p>
+
+    <h2>5. Hoạt động</h2>
+    <p>Nhật ký nhận các sự kiện mở hồ sơ, timeline, thuyết minh, Tra cứu sử liệu, Giả định lịch sử, Nhập vai quyết sách, lựa chọn nhập vai, đổi ngôn ngữ và kết thúc phiên.</p>
+
+    <h2>6. AI phân tích</h2>
+    <p>AI chỉ được trả lời về dữ liệu sử dụng hệ thống: nhân vật được quan tâm, số người tham gia, chức năng phổ biến, so sánh nhân vật và đề xuất cải tiến. Câu hỏi ngoài phạm vi sẽ bị từ chối.</p>
+    <p><b>Quan tâm</b> dựa trên người tham gia, phiên và tương tác. <b>Yêu thích</b> chỉ dựa trên sự kiện yêu thích thật, không suy diễn từ lượt xem.</p>
+
+    <h2>7. Quản lý tài khoản</h2>
+    <ul>
+      <li>Tạo tài khoản mới và cung cấp riêng tên/mật khẩu.</li>
+      <li>Thu hồi quyền để khóa tài khoản và vô hiệu phiên đăng nhập cũ.</li>
+      <li>Tài khoản đã thu hồi mới có thể Xóa vĩnh viễn.</li>
+      <li>Tài khoản Quản lý chính không thể bị xóa.</li>
+    </ul>
+
+    <h2>8. Nếu website nhân vật đã dùng nhưng Dashboard chưa có dữ liệu</h2>
+    <ol>
+      <li>Vercel website nhân vật phải có <code>ANALYTICS_API_URL=https://quan-ly-s7j8.vercel.app</code>.</li>
+      <li><code>ANALYTICS_INGEST_KEY</code> phải giống hệt key của website quản lý.</li>
+      <li>Redeploy website nhân vật sau khi sửa Environment Variables.</li>
+      <li>Mở phiên mới, nhập tên, hoàn tất màn bụi và dùng một chức năng.</li>
+      <li>Quay lại Dashboard, tải lại trang hoặc bấm Áp dụng.</li>
+    </ol>
+
+    <h2>9. Bảo mật</h2>
+    <p>Không đưa các key <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>OPENAI_API_KEY</code>, <code>ANALYTICS_INGEST_KEY</code> vào frontend hoặc GitHub.</p>
+  </article>
+</body>
+</html>

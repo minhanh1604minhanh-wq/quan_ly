@@ -7,7 +7,7 @@ const mustExist = [
   'server.js','package.json','.env.example','README.md',
   'public/index.html','public/styles.css','public/app.js',
   'supabase/schema.sql','supabase/migrations/20260818_admin_roles.sql',
-  'integration/INTEGRATION_GUIDE.md'
+  'integration/INTEGRATION_GUIDE.md','HUONG_DAN_SU_DUNG_GIAO_VIEN.md','public/teacher-guide.html'
 ];
 let failed = false;
 function check(name, ok, detail='') {
@@ -27,7 +27,7 @@ check('Vercel zero-config: no vercel.json rewrite file', !fs.existsSync(path.joi
 check('Express default export', server.includes('export default app'));
 check('Vercel does not rely on express.static', server.includes('if (!process.env.VERCEL)') && server.includes('express.static'));
 
-check('version 1.1.3', pkg.version === '1.1.3');
+check('version 1.2.0', pkg.version === '1.2.0');
 check('root route redirects to index.html', server.includes("app.get('/',") && server.includes("res.redirect('/index.html')"));
 check('no Google Sheets env', !env.includes('GOOGLE_SHEET'));
 check('no Google Sheets runtime', !server.toLowerCase().includes('google sheet') && !server.includes('GOOGLE_SHEET_URL'));
@@ -40,6 +40,7 @@ check('admin list endpoint', server.includes("app.get('/api/admins'"));
 check('admin create endpoint', server.includes("app.post('/api/admins'"));
 check('admin revoke/restore endpoint', server.includes("/api/admins/:id/status"));
 check('admin reset password endpoint', server.includes("/api/admins/:id/password"));
+check('revoked admin delete endpoint', server.includes("app.delete('/api/admins/:id'"));
 check('self password change endpoint', server.includes("/api/auth/change-password"));
 check('manager UI restricted', html.includes('master-only') && app.includes('isMaster()'));
 check('admin table schema', schema.includes('create table if not exists public.admins'));
@@ -49,10 +50,13 @@ check('AI restricted endpoint', server.includes("app.post('/api/ai'"));
 check('off-topic fixed response', server.includes('Tôi chỉ hỗ trợ phân tích dữ liệu hoạt động'));
 check('participant name required in ingestion', server.includes('participantName'));
 check('character management endpoint', server.includes("app.post('/api/characters'"));
+check('hidden character delete endpoint', server.includes("app.delete('/api/characters/:id'"));
 check('analytics SQL function', schema.includes('analytics_snapshot'));
 check('dashboard UI', html.includes('BẢNG ĐIỀU KHIỂN GIÁO VIÊN'));
 check('AI UI', html.includes('TRỢ LÝ PHÂN TÍCH'));
 check('admin management UI', html.includes('Quản lý tài khoản') && html.includes('Tạo tài khoản mới'));
+check('teacher guide UI', html.includes('Hướng dẫn sử dụng') && fs.existsSync(path.join(root,'HUONG_DAN_SU_DUNG_GIAO_VIEN.md')));
+check('brand glyph removed', !html.includes('<div class="brand-mark">史</div>'));
 
 const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
 const appIds = [...app.matchAll(/\$\('([^']+)'\)/g)].map(m => m[1]).filter(id => !id.includes('${'));

@@ -230,7 +230,7 @@ app.get('/health', async (_req, res) => {
   res.json({
     ok: true,
     service: 'history-analytics-manager',
-    version: '1.1.3',
+    version: '1.2.0',
     databaseReady,
     aiConfigured: Boolean(process.env.OPENAI_API_KEY),
     roleBasedAdmin: true,
@@ -379,6 +379,34 @@ app.patch('/api/admins/:id/status', requireAdmin, requireMaster, async (req, res
   }
 });
 
+app.delete('/api/admins/:id', requireAdmin, requireMaster, async (req, res) => {
+  try {
+    if (req.params.id === req.admin.id) {
+      return res.status(400).json({ ok: false, error: 'Không thể xóa tài khoản Quản lý chính đang đăng nhập.' });
+    }
+    const { data: target, error: readError } = await db()
+      .from('admins')
+      .select('id,username,role,active')
+      .eq('id', req.params.id)
+      .single();
+    if (readError) throw readError;
+    if (target.role === 'master') {
+      return res.status(403).json({ ok: false, error: 'Không thể xóa tài khoản Quản lý chính.' });
+    }
+    if (target.active) {
+      return res.status(409).json({ ok: false, error: 'Hãy Thu hồi quyền tài khoản trước khi xóa vĩnh viễn.' });
+    }
+
+    await auditAdmin(req.admin.id, target.id, 'delete_manager', { username: target.username });
+    const { error } = await db().from('admins').delete().eq('id', target.id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('delete admin error', error);
+    res.status(500).json({ ok: false, error: 'Không thể xóa tài khoản quản lý.' });
+  }
+});
+
 app.patch('/api/admins/:id/password', requireAdmin, requireMaster, async (req, res) => {
   try {
     const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
@@ -431,7 +459,6 @@ app.post('/api/events', requireIngest, async (req, res) => {
         slug: characterSlug,
         name_vi: characterName,
         name_en: cleanText(character.nameEn, 250) || null,
-        active: true,
         updated_at: now
       }, { onConflict: 'slug' })
       .select('id,slug,name_vi')
@@ -553,6 +580,32 @@ app.patch('/api/characters/:id', requireAdmin, async (req, res) => {
     res.json({ ok: true, data });
   } catch {
     res.status(500).json({ ok: false, error: 'Không thể cập nhật nhân vật.' });
+  }
+});
+
+app.delete('/api/characters/:id', requireAdmin, requireMaster, async (req, res) => {
+  try {
+    const { data: target, error: readError } = await db()
+      .from('characters')
+      .select('id,slug,name_vi,active')
+      .eq('id', req.params.id)
+      .single();
+    if (readError) throw readError;
+    if (target.active) {
+      return res.status(409).json({ ok: false, error: 'Hãy Tạm ẩn nhân vật trước khi xóa vĩnh viễn.' });
+    }
+
+    const { error } = await db().from('characters').delete().eq('id', target.id);
+    if (error) throw error;
+    await auditAdmin(req.admin.id, null, 'delete_character', {
+      characterId: target.id,
+      slug: target.slug,
+      name: target.name_vi
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('delete character error', error);
+    res.status(500).json({ ok: false, error: 'Không thể xóa nhân vật.' });
   }
 });
 

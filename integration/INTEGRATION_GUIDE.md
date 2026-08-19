@@ -92,3 +92,17 @@ app.post('/analytics-event', async (req, res) => {
 - **Được yêu thích**: chỉ dựa vào sự kiện `favorite_add` (nếu website có nút yêu thích).
 - **Được quan tâm**: xem participants + sessions + interactions; không đồng nhất với yêu thích.
 - **Ai truy cập nhiều nhất**: xếp theo interactions/sessions của participant.
+
+
+## Tích hợp Trưng Trắc v5.8.4
+Website Trưng Trắc dùng backend proxy:
+- Browser gọi `/analytics-event` trên chính website Trưng Trắc.
+- Backend Trưng Trắc đọc `ANALYTICS_API_URL` và `ANALYTICS_INGEST_KEY`.
+- Backend mới gọi `POST /api/events` của website quản lý với `x-analytics-key`.
+- Không đưa `ANALYTICS_INGEST_KEY` vào frontend.
+
+Vercel của website Trưng Trắc:
+```env
+ANALYTICS_API_URL=https://quan-ly-s7j8.vercel.app
+ANALYTICS_INGEST_KEY=<giống website quản lý>
+```

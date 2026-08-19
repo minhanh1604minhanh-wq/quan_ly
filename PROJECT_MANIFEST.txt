@@ -1,20 +1,21 @@
-History Analytics Manager v1.1.0 — Role-Based Admin
+History Analytics Manager v1.2.0 — RBAC + Delete + Analytics + Teacher Guide
 
 Core
 - server.js
 - package.json
-- vercel.json
 - .env.example
 - .gitignore
 - README.md
-- UPGRADE_v1.0.1_TO_v1.1.0.md
 - validate-project.js
-- VALIDATION_REPORT_v1.1.0.txt
+- VALIDATION_REPORT_v1.2.0.txt
+- CHANGELOG_v1.2.0.md
+- HUONG_DAN_SU_DUNG_GIAO_VIEN.md
 
 Frontend
 - public/index.html
 - public/styles.css
 - public/app.js
+- public/teacher-guide.html
 
 Database
 - supabase/schema.sql
@@ -25,12 +26,13 @@ Integration
 - integration/INTEGRATION_GUIDE.md
 - integration/sample-event.json
 
-v1.1.0
-- Login changed from password-only to username + password.
-- Added roles: master (Quản lý chính) and manager (Quản lý).
-- Master can create managers, reset manager passwords, revoke/restore manager access.
-- Every account can change its own password.
-- Passwords are hashed with Node.js scrypt before database storage.
-- Session tokens include session_version; password reset/revoke invalidates old sessions.
-- Added admin audit log table.
-- Preserved dashboard, analytics, character management, AI restrictions, event ingestion and no-Google-Sheets architecture.
+v1.2.0 highlights
+- Root route redirects to /index.html.
+- No vercel.json; Express uses Vercel zero-config.
+- Master can permanently delete revoked manager accounts.
+- Master can permanently delete hidden characters.
+- Root/master account cannot be deleted.
+- Removed sidebar 史 circular brand mark.
+- Added teacher guide in dashboard and standalone files.
+- Event ingestion stays server-side and does not expose analytics secret.
+- Google Sheets remains fully removed.
